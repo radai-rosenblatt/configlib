@@ -17,6 +17,8 @@
 
 package net.radai.configlib.core.runtime;
 
+import net.radai.configlib.core.util.FormatUtil;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
@@ -59,7 +61,7 @@ public class MethodProperty implements Property {
 
     @Override
     public String toString() {
-        String typeName = getType().getTypeName().substring(getType().getTypeName().lastIndexOf(".")+1);
+        String typeName = FormatUtil.prettyPrint(getType());
         String result = typeName + " " + name + ": ";
         if (getter != null) {
             result += getter.getName() + "()";
@@ -68,7 +70,7 @@ public class MethodProperty implements Property {
         }
         result += " / ";
         if (setter != null) {
-            result += setter.getName() + "(" + typeName + ")"; //TODO - reflect real arg to setter
+            result += setter.getName() + "(" + name + ")";
         } else {
             result += "-";
         }

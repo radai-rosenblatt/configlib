@@ -37,7 +37,7 @@ public class ConfigLib {
         Ini ini = readIni(from);
         T instance;
         try {
-            instance = (T) confClass.newInstance();
+            instance = confClass.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
             throw new IllegalArgumentException("unable to instantiate " + confClass, e);
         }
