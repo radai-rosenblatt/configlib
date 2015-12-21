@@ -49,17 +49,45 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.api;
+package net.radai.beanz.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import net.radai.beanz.api.Codec;
+import net.radai.beanz.api.Property;
+import org.apache.commons.lang3.ClassUtils;
+
+import java.lang.reflect.Type;
+import java.util.HashMap;
+import java.util.Map;
+
+import static net.radai.beanz.util.ReflectionUtil.erase;
 
 /**
- * Created by Radai Rosenblatt
+ * @author Radai Rosenblatt
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
-public @interface Section {
+public class Bean {
+    private Map<String, Property> properties = new HashMap<>();
+    private Map<Type, Codec> codecs = new HashMap<>();
+
+    public void addProperty(Property prop) {
+        String name = prop != null ? prop.getName() : null;
+        if (prop == null || name == null || name.isEmpty() || properties.containsKey(name)) {
+            throw new IllegalArgumentException();
+        }
+        properties.put(name, prop);
+    }
+
+    public Property getProperty(String propName) {
+        return properties.get(propName);
+    }
+
+    public Map<String, Property> getProperties() {
+        return properties;
+    }
+
+    public void addCodec(Type type, Codec codec) {
+        if (codec == null || type == null || !ClassUtils.isAssignable(erase(codec.getType()), erase(type), true) || codecs.containsKey(type)) {
+            throw new IllegalArgumentException();
+        }
+        codecs.put(type, codec);
+    }
 }

@@ -15,40 +15,20 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.runtime;
+package net.radai.beanz.api;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Type;
+import net.radai.beanz.codecs.ArrayCodec;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class FieldProperty implements Property {
-    private final String name;
-    private final Field field;
+public interface ArrayProperty extends Property {
 
-    public FieldProperty(String name, Field field) {
-        this.name = name;
-        this.field = field;
+    @Override
+    default PropertyType getType() {
+        return PropertyType.ARRAY;
     }
 
     @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public Type getType() {
-        return field.getGenericType();
-    }
-
-    @Override
-    public boolean isReadable() {
-        return true;
-    }
-
-    @Override
-    public boolean isWritable() {
-        return true;
-    }
+    ArrayCodec getCodec();
 }

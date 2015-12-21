@@ -15,25 +15,33 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.runtime;
+package net.radai.beanz.properties;
 
+import net.radai.beanz.api.Bean;
+import net.radai.beanz.api.Codec;
 import net.radai.beanz.api.Property;
 
 import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * @author Radai Rosenblatt
+ * Created by Radai Rosenblatt
  */
-public class BeanSection implements Section {
-    private String name;
-    private Type type;
-    private Map<String, Property> properties = new HashMap<>();
+public abstract class PropertyBase implements Property {
+    private final Bean containingBean;
+    private final String name;
+    private final Type type;
+    private final Codec codec;
 
-    public BeanSection(String name, Type type) {
+    public PropertyBase(Bean containingBean, String name, Type type, Codec codec) {
+        this.containingBean = containingBean;
         this.name = name;
         this.type = type;
+        this.codec = codec;
+    }
+
+    @Override
+    public Bean getContainingBean() {
+        return containingBean;
     }
 
     @Override
@@ -41,7 +49,13 @@ public class BeanSection implements Section {
         return name;
     }
 
-    public Type getType() {
+    @Override
+    public Type getValueType() {
         return type;
+    }
+
+    @Override
+    public Codec getCodec() {
+        return codec;
     }
 }

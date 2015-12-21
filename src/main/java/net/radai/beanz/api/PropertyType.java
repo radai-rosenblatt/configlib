@@ -15,11 +15,11 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.runtime;
+package net.radai.beanz.api;
 
 /**
- * @author Radai Rosenblatt
+ * Created by Radai Rosenblatt
  */
-public interface Section {
-    String getName();
+public enum PropertyType {
+    SIMPLE, ARRAY, COLLECTION, MAP
 }

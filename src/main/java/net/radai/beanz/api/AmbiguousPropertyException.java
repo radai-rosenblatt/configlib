@@ -32,40 +32,24 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.util;
-
-import java.util.Locale;
+package net.radai.beanz.api;
 
 /**
- * Created by Radai Rosenblatt
+ * @author Radai Rosenblatt
  */
-public class EnglishUtil {
-    public static boolean isPlural(String propName) {
-        return propName.toLowerCase(Locale.ROOT).endsWith("s");
+public class AmbiguousPropertyException extends IllegalArgumentException {
+    public AmbiguousPropertyException() {
     }
 
-    public static String derivePlural(String propName) {
-        String lowercase = propName.toLowerCase(Locale.ROOT);
-        if (lowercase.endsWith("s") || lowercase.endsWith("x")) {
-            return propName + "es"; //asses, axes
-        }
-        if (lowercase.endsWith("y")) {
-            return propName.substring(0, propName.length()-1) + "ies"; //parties
-        }
-        return propName + "s"; //cats
+    public AmbiguousPropertyException(String s) {
+        super(s);
     }
 
-    public static String deriveSingular(String propName) {
-        String lowercase = propName.toLowerCase(Locale.ROOT);
-        if (lowercase.endsWith("ies")) {
-            return propName.substring(0, propName.length()-3) + "y"; //pantries --> pantry
-        }
-        if (lowercase.endsWith("es")) {
-            return propName.substring(0, propName.length()-2); //boxes --> box
-        }
-        if (lowercase.endsWith("s")) {
-            return propName.substring(0, propName.length()-1); //cats --> cat
-        }
-        return propName;
+    public AmbiguousPropertyException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public AmbiguousPropertyException(Throwable cause) {
+        super(cause);
     }
 }

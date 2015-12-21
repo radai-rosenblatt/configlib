@@ -15,7 +15,34 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.runtime;
+/*
+ * This file is part of ConfigLib.
+ *
+ * ConfigLib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ConfigLib is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package net.radai.beanz;
+
+import net.radai.beanz.api.Bean;
+import net.radai.beanz.api.Codec;
+import net.radai.beanz.codecs.*;
+import net.radai.beanz.properties.CompositeProperty;
+import net.radai.beanz.properties.FieldProperty;
+import net.radai.beanz.properties.MethodProperty;
+import net.radai.beanz.api.Property;
+import net.radai.beanz.util.ReflectionUtil;
+import net.radai.beanz.api.AmbiguousPropertyException;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -26,59 +53,13 @@ import java.util.*;
 /**
  * Created by Radai Rosenblatt
  */
-public class ConfigClassAnalyzer {
+public class Beanz {
 
-    //TODO - convert this to use Type and then would handle Config<T>
-    public static Config analyze(Class clazz) {
-        Config config = new Config();
+    public static Bean analyze(Class clazz) {
+        Bean bean = new Bean();
 
-        Map<String, Property> properties = findAllProperties(clazz);
-        properties.remove("class"); //built in to all java classes.
-
-        //now we need to decide which of these are properties of the conf class, and which are sections
-        for (Map.Entry<String, Property> entry : properties.entrySet()) {
-            String propName = entry.getKey();
-            Property prop = entry.getValue();
-
-            //a property is something we can convert to/from a String. anything we cant is a section
-            if (prop.isMap()) {
-                Type keyType = prop.getKeyType();
-                Type valueType = prop.getElementType();
-                //maps are sections, for now.
-                config.addSection(new MapSection(propName, keyType, valueType));
-            } else if (prop.isCollection() || prop.isArray()) {
-                //lists are simple properties
-                config.addProperty(prop);
-            } else {
-                //anything that is parsable from a String is a simple prop, otherwise a section
-                //TODO - finish this
-                Type valueType = prop.getType();
-                if (config.hasCodecFor(valueType)) {
-                    config.addProperty(prop);
-                } else {
-                    Codec codec = findCodecFor(valueType);
-                    if (codec != null) {
-                        config.addCodec(codec);
-                        config.addProperty(prop);
-                    } else {
-                        config.addSection(new BeanSection(propName, valueType));
-                    }
-                }
-            }
-        }
-
-        return config;
-    }
-
-    public static Codec findCodecFor(Type type) {
-        if (type.equals(String.class)) {
-            return Codec.NOP_CODEC;
-        }
-        return null;
-    }
-
-    public static Map<String, Property> findAllProperties(Class clazz) {
         Map<String, Property> properties = new HashMap<>();
+        Map<Type, Codec> codecs = new HashMap<>(Codecs.BUILT_INS);
 
         //methods 1st
         for (Method method : clazz.getMethods()) {
@@ -86,7 +67,7 @@ public class ConfigClassAnalyzer {
                 String propName = propNameFrom(method);
                 if (!properties.containsKey(propName)) {
                     try {
-                        properties.put(propName, resolve(clazz, propName));
+                        properties.put(propName, resolve(bean, clazz, propName, codecs));
                     } catch (AmbiguousPropertyException e) {
                         //not a property
                     }
@@ -107,7 +88,7 @@ public class ConfigClassAnalyzer {
                     continue;
                 }
                 try {
-                    properties.put(fieldName, resolve(clazz, fieldName));
+                    properties.put(fieldName, resolve(bean, clazz, fieldName, codecs));
                 } catch (AmbiguousPropertyException e) {
                     //not a property
                 }
@@ -115,38 +96,138 @@ public class ConfigClassAnalyzer {
             c = c.getSuperclass();
         }
 
-        return properties;
+        properties.forEach((s, property) -> bean.addProperty(property));
+        codecs.forEach(bean::addCodec);
+        return bean;
     }
 
-    public static Property resolve(Class clazz, String propName) {
+    private static Property resolve(Bean bean, Class clazz, String propName, Map<Type, Codec> codecs) {
         //look for a getter/setter pair
         Method getter = findGetter(clazz, propName);
         Method setter = findSetter(clazz, propName);
+        Field field = findField(clazz, propName);
+        if (getter == null && setter == null && field == null) {
+            return null;
+        }
+
+        Type type = resolvePropertyType(clazz, propName, getter, setter, field);
+        Codec codec = resolvePropertyCodec(clazz, propName, type, getter, setter, field, codecs);
+
         if (getter != null && setter != null) {
-            Type getterType = getter.getGenericReturnType();
-            Type setterType = setter.getGenericParameterTypes()[0];
+            return new MethodProperty(bean, propName, type, codec, getter, setter);
+        }
+        if (getter == null && setter == null) {
+            return new FieldProperty(bean, propName, type, codec, field);
+        }
+        //we have either a getter or a setter
+        MethodProperty methodProperty = new MethodProperty(bean, propName, type, codec, getter, setter);
+        if (field == null) {
+            //and no field
+            return methodProperty; //one of them is != null;
+        }
+        return new CompositeProperty(methodProperty, new FieldProperty(bean, propName, type, codec, field));
+    }
+
+    private static Type resolvePropertyType(Class clazz, String propName, Method getter, Method setter, Field field) {
+        Type getterType = getter != null ? getter.getGenericReturnType() : null;
+        Type setterType = setter != null ? setter.getGenericParameterTypes()[0] : null;
+        Type fieldType = field != null ? field.getGenericType() : null;
+
+        if (getter != null && setter != null) {
             if (!getterType.equals(setterType)) {
                 //TODO - be smart about boxing?
+                //TODO - also be smart about missing generics? (List vs List<Something>)
                 throw new AmbiguousPropertyException("ambiguous property " + clazz.getSimpleName() + "." + propName + ": getter is " + getter + " while setter is " + setter);
             }
-            return new MethodProperty(propName, getter, setter);
+            return getterType;
         }
-        //look for a field, because one (or both) of the above are missing
-        Field field = findField(clazz, propName);
         if (getter == null && setter == null) {
-            return field == null ? null : new FieldProperty(propName, field);
+            return fieldType;
         }
-        MethodProperty methodProperty = new MethodProperty(propName, getter, setter); //one of them is != null
+        //we have just one method
+        Type methodType = getterType != null ? getterType : setterType;
         if (field == null) {
-            return methodProperty;
+            return methodType;
         }
-        Type methodPropType = methodProperty.getType();
-        Type fieldType = field.getGenericType();
-        if (!methodPropType.equals(fieldType)) {
+        if (!fieldType.equals(methodType)) {
             //TODO - be smart about boxing?
-            throw new AmbiguousPropertyException("ambiguous property " + clazz.getSimpleName() + "." + propName + ": getter/setter type is " + methodPropType + " while field type is " + fieldType);
+            throw new AmbiguousPropertyException("ambiguous property " + clazz.getSimpleName() + "." + propName + ": getter/setter type is " + methodType + " while field type is " + fieldType);
         }
-        return new CompositeProperty(methodProperty, new FieldProperty(propName, field));
+        return methodType;
+    }
+
+    private static Codec resolvePropertyCodec (
+            Class clazz, String propName, Type type,
+            Method getter, Method setter, Field field,
+            Map<Type, Codec> codecs) {
+        //TODO - check for overrides in annotations on methods > field > class > type
+        Codec forType = codecs.get(type);
+        if (forType != null) {
+            return forType;
+        }
+        Codec result = null;
+        if (ReflectionUtil.isArray(type) || ReflectionUtil.isCollection(type)) {
+            Type elementType = ReflectionUtil.getElementType(type);
+            Codec elementCodec = resolvePropertyCodec(null, null, elementType, null, null, null, codecs);
+            if (elementCodec == null) {
+                return null; //cant handle the elements == cant handle the collection/array
+            }
+            if (ReflectionUtil.isArray(type)) {
+                result = new ArrayCodec(type, elementType, elementCodec);
+            } else {
+                result = new CollectionCodec(type, elementType, elementCodec);
+            }
+        } else if (ReflectionUtil.isMap(type)) {
+            Type keyType = ReflectionUtil.getKeyType(type);
+            Type valueType = ReflectionUtil.getElementType(type);
+            Codec keyCodec = resolvePropertyCodec(null, null, keyType, null, null, null, codecs);
+            Codec valueCodec = resolvePropertyCodec(null, null, valueType, null, null, null, codecs);
+            if (keyCodec == null || valueCodec == null) {
+                return null;
+            }
+            result = new MapCodec(type, keyType, valueType, keyCodec, valueCodec);
+        } else {
+            //see if this type has toString + valueOf(String)
+            Class erased = ReflectionUtil.erase(type);
+            Method encodeMethod = null;
+            Method decodeMethod = null;
+            for (Method method : erased.getMethods()) {
+                int modifiers = method.getModifiers();
+                Type[] argumentTypes = method.getGenericParameterTypes();
+                String methodName = method.getName();
+                if ("toString".equals(methodName)
+                        && !Modifier.isStatic(modifiers)
+                        && method.getParameterCount() == 0
+                        && method.getGenericReturnType().equals(String.class)
+                        && method.getDeclaringClass() == erased) {
+                    //public String toString() defined directly on the target type (not inherited)
+                    if (encodeMethod != null) {
+                        throw new IllegalStateException();
+                    }
+                    encodeMethod = method;
+                    continue;
+                }
+                if (("fromString".equals(methodName) || "valueOf".equals(methodName))
+                        && Modifier.isStatic(modifiers)
+                        && method.getParameterCount() == 1
+                        && String.class.equals(argumentTypes[0])
+                        && method.getDeclaringClass() == erased) {
+                    if (decodeMethod != null) {
+                        throw new IllegalStateException();
+                    }
+                    decodeMethod = method;
+                    //noinspection UnnecessaryContinue
+                    continue;
+                }
+            }
+            if (encodeMethod != null && decodeMethod != null) {
+                result = new SimpleCodec(type, encodeMethod, decodeMethod);
+            }
+        }
+        if (result != null) {
+            codecs.put(type, result);
+        }
+        return result;
     }
 
     private static boolean isGetter(Method method) {

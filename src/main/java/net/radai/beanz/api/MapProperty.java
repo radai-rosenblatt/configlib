@@ -15,11 +15,25 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.runtime;
+package net.radai.beanz.api;
+
+import net.radai.beanz.codecs.MapCodec;
+
+import java.util.Map;
 
 /**
- * @author Radai Rosenblatt
+ * Created by Radai Rosenblatt
  */
-public interface Section {
-    String getName();
+public interface MapProperty extends Property {
+
+    Class<? extends Map> getMapClass();
+
+
+    @Override
+    default PropertyType getType() {
+        return PropertyType.MAP;
+    }
+
+    @Override
+    MapCodec getCodec();
 }

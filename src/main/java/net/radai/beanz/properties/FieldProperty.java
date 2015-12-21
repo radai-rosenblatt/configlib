@@ -49,17 +49,70 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.api;
+package net.radai.beanz.properties;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import net.radai.beanz.api.Bean;
+import net.radai.beanz.util.ReflectionUtil;
+import net.radai.beanz.api.Codec;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Type;
 
 /**
  * Created by Radai Rosenblatt
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
-public @interface Section {
+public class FieldProperty extends SimpleProperty {
+    private final Field field;
+
+    public FieldProperty(Bean containingBean, String name, Type type, Codec codec, Field field) {
+        super(containingBean, name, type, codec);
+        this.field = field;
+    }
+
+    @Override
+    public boolean isReadable() {
+        return true;
+    }
+
+    @Override
+    public boolean isWritable() {
+        return true;
+    }
+
+    @Override
+    public Object get(Object bean) {
+        try {
+            return field.get(bean);
+        } catch (IllegalAccessException e) {
+            //todo - support using private fields
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public void set(Object bean, Object value) {
+        try {
+            field.set(bean, value);
+        }  catch (IllegalAccessException e) {
+            //todo - support using private fields
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public String toString() {
+        String typeName = ReflectionUtil.prettyPrint(getValueType());
+        int modifiers = field.getModifiers();
+        String accessModifier = "";
+        if (Modifier.isPrivate(modifiers)) {
+            accessModifier = "private";
+        } else if (Modifier.isProtected(modifiers)) {
+            accessModifier = "protected";
+        } else if (Modifier.isPublic(modifiers)) {
+            accessModifier = "public";
+        }
+        return typeName + " " + getName() + ": "
+                + accessModifier + ReflectionUtil.prettyPrint(field.getGenericType()) + field.getName();
+    }
 }

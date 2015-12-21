@@ -32,40 +32,42 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.util;
+package net.radai.beanz.codecs;
 
-import java.util.Locale;
+import net.radai.beanz.api.Codec;
+import net.radai.beanz.codecs.Codecs;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.lang.reflect.Type;
+import java.util.Map;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class EnglishUtil {
-    public static boolean isPlural(String propName) {
-        return propName.toLowerCase(Locale.ROOT).endsWith("s");
+public class CodecsTest {
+
+    @Test
+    public void testShortCodec() throws Exception {
+        Map<Type, Codec> codecs = Codecs.BUILT_INS;
+        Codec shortCodec = codecs.get(short.class);
+        short decoded = (short) shortCodec.decode("6");
+        Assert.assertEquals(6, decoded);
+        String encoded = shortCodec.encode((short) 6);
+        Assert.assertEquals("6", encoded);
     }
 
-    public static String derivePlural(String propName) {
-        String lowercase = propName.toLowerCase(Locale.ROOT);
-        if (lowercase.endsWith("s") || lowercase.endsWith("x")) {
-            return propName + "es"; //asses, axes
-        }
-        if (lowercase.endsWith("y")) {
-            return propName.substring(0, propName.length()-1) + "ies"; //parties
-        }
-        return propName + "s"; //cats
+    @Test
+    public void testStringCodec() throws Exception {
+        Codec stringCodec = Codecs.BUILT_INS.get(String.class);
+        String bob = "bob";
+        String decoded = (String) stringCodec.decode(bob);
+        //noinspection StringEquality
+        Assert.assertTrue(decoded == bob);
+        String encoded = stringCodec.encode(bob);
+        //noinspection StringEquality
+        Assert.assertTrue(encoded == bob);
     }
 
-    public static String deriveSingular(String propName) {
-        String lowercase = propName.toLowerCase(Locale.ROOT);
-        if (lowercase.endsWith("ies")) {
-            return propName.substring(0, propName.length()-3) + "y"; //pantries --> pantry
-        }
-        if (lowercase.endsWith("es")) {
-            return propName.substring(0, propName.length()-2); //boxes --> box
-        }
-        if (lowercase.endsWith("s")) {
-            return propName.substring(0, propName.length()-1); //cats --> cat
-        }
-        return propName;
-    }
+
 }

@@ -32,40 +32,24 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.util;
+package net.radai.beanz.codecs;
 
-import java.util.Locale;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class EnglishUtil {
-    public static boolean isPlural(String propName) {
-        return propName.toLowerCase(Locale.ROOT).endsWith("s");
-    }
+public class ArrayCodecTest {
 
-    public static String derivePlural(String propName) {
-        String lowercase = propName.toLowerCase(Locale.ROOT);
-        if (lowercase.endsWith("s") || lowercase.endsWith("x")) {
-            return propName + "es"; //asses, axes
-        }
-        if (lowercase.endsWith("y")) {
-            return propName.substring(0, propName.length()-1) + "ies"; //parties
-        }
-        return propName + "s"; //cats
-    }
-
-    public static String deriveSingular(String propName) {
-        String lowercase = propName.toLowerCase(Locale.ROOT);
-        if (lowercase.endsWith("ies")) {
-            return propName.substring(0, propName.length()-3) + "y"; //pantries --> pantry
-        }
-        if (lowercase.endsWith("es")) {
-            return propName.substring(0, propName.length()-2); //boxes --> box
-        }
-        if (lowercase.endsWith("s")) {
-            return propName.substring(0, propName.length()-1); //cats --> cat
-        }
-        return propName;
+    @Test
+    public void test() throws Exception {
+        ArrayCodec codec = new ArrayCodec(long[].class, long.class, Codecs.BUILT_INS.get(long.class));
+        long[] array = new long[] {1, 2, 3, 4, 5};
+        String encoded = codec.encode(array);
+        Assert.assertEquals("[1, 2, 3, 4, 5]", encoded);
+        long[] decoded = (long[]) codec.decode(encoded);
+        Assert.assertTrue(decoded != array);
+        Assert.assertArrayEquals(array, decoded);
     }
 }

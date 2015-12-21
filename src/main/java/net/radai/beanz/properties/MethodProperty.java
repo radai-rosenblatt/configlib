@@ -49,17 +49,80 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.api;
+package net.radai.beanz.properties;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import net.radai.beanz.api.Bean;
+import net.radai.beanz.util.ReflectionUtil;
+import net.radai.beanz.api.Codec;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 
 /**
  * Created by Radai Rosenblatt
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
-public @interface Section {
+public class MethodProperty extends SimpleProperty {
+    private final Method getter;
+    private final Method setter;
+
+    public MethodProperty(Bean containingBean, String name, Type type, Codec codec, Method getter, Method setter) {
+        super(containingBean, name, type, codec);
+        this.getter = getter;
+        this.setter = setter;
+    }
+
+    @Override
+    public boolean isReadable() {
+        return getter != null;
+    }
+
+    @Override
+    public boolean isWritable() {
+        return setter != null;
+    }
+
+    @Override
+    public Object get(Object bean) {
+        if (!isReadable()) {
+            throw new IllegalStateException();
+        }
+        try {
+            return getter.invoke(bean);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            //todo - support using private methods
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public void set(Object bean, Object value) {
+        if (!isWritable()) {
+            throw new IllegalStateException();
+        }
+        try {
+            setter.invoke(bean, value);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            //todo - support using private methods
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @Override
+    public String toString() {
+        String typeName = ReflectionUtil.prettyPrint(getValueType());
+        String result = typeName + " " + getName() + ": ";
+        if (getter != null) {
+            result += getter.getName() + "()";
+        } else {
+            result += "-";
+        }
+        result += " / ";
+        if (setter != null) {
+            result += setter.getName() + "(" + getName() + ")";
+        } else {
+            result += "-";
+        }
+        return result;
+    }
 }

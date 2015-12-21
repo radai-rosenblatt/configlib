@@ -49,17 +49,39 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.api;
+package net.radai.beanz.api;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import net.radai.beanz.util.ReflectionUtil;
+
+import java.lang.reflect.Type;
 
 /**
  * Created by Radai Rosenblatt
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
-public @interface Section {
+public interface Property {
+    Bean getContainingBean();
+    String getName();
+    PropertyType getType();
+    Type getValueType();
+    boolean isReadable();
+    boolean isWritable();
+    Object get(Object bean);
+    void set(Object bean, Object value);
+    Codec getCodec();
+
+    default boolean isArray() {
+        return ReflectionUtil.isArray(getValueType());
+    }
+    default boolean isCollection() {
+        return ReflectionUtil.isCollection(getValueType());
+    }
+    default boolean isMap() {
+        return ReflectionUtil.isMap(getValueType());
+    }
+    default Type getElementType() {
+        return ReflectionUtil.getElementType(getValueType());
+    }
+    default Type getKeyType() {
+        return ReflectionUtil.getKeyType(getValueType());
+    }
 }
