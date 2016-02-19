@@ -14,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 package net.radai.configlib.core.util;
 
 import java.util.Locale;
