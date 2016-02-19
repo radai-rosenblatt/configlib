@@ -49,4 +49,19 @@ public class CatsTest {
                 new Cat("Snowball", "Kitler", null)
                 ), cats.getCats());
     }
+
+    @Test
+    public void testParsingCat() throws Exception {
+        Cats cats;
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("cat.ini")) {
+            Reader reader = new InputStreamReader(is, Charset.forName("UTF-8"));
+            cats = ConfigLib.parse(Cats.class, reader);
+        }
+        Assert.assertNotNull(cats);
+        Assert.assertEquals("bob", cats.getCreator());
+        Assert.assertEquals(Collections.singletonList("just a single cat"), cats.getComments());
+        Assert.assertEquals(Collections.singletonList(
+                new Cat("Colonel Meow", "Guinness World Record Holder For Longest Cat Hair", Collections.singletonList("baths"))
+        ), cats.getCats());
+    }
 }

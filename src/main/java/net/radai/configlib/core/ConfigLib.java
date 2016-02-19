@@ -28,7 +28,6 @@ import org.ini4j.spi.IniParser;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.lang.reflect.Type;
 import java.util.*;
 
 /**
@@ -54,21 +53,14 @@ public class ConfigLib {
             } else {
                 Property property;
                 property = pod.resolve(sectionName);
-                if (sectionInstances.size() == 1) {
-                    if (property == null) {
-                        throw new IllegalArgumentException();
-                    }
-                    populate(pod, property, sectionInstances.get(0));
-                } else {
-                    if (property == null) {
-                        String pluralName = EnglishUtil.derivePlural(sectionName); //if section is "dog" maybe there's a prop "dogs"
-                        property = pod.resolve(pluralName);
-                        if (property == null) {
-                            throw new IllegalArgumentException();
-                        }
-                    }
-                    populateFromSections(pod, property, sectionInstances);
+                if (property == null) {
+                    String pluralName = EnglishUtil.derivePlural(sectionName); //if section is "dog" maybe there's a prop "dogs"
+                    property = pod.resolve(pluralName);
                 }
+                if (property == null) {
+                    throw new IllegalArgumentException();
+                }
+                populateFromSections(pod, property, sectionInstances);
             }
         }
         return pod.getBean();
@@ -82,48 +74,18 @@ public class ConfigLib {
                 throw new IllegalStateException();
             }
             Property property;
-            if (values.size() == 1) {
-                //single value
-                String value = values.get(0);
-                property = what.resolve(key);
-                if (property == null) {
-                    throw new IllegalArgumentException();
-                }
-                populateFromString(what, property, value);
+            property = what.resolve(key);
+            if (property != null) {
+                populateFromStrings(what, property, values);
             } else {
-                //multiple values
-                property = what.resolve(key);
-                if (property != null) {
-                    populateFromStrings(what, property, values);
-                } else {
-                    //could not find prop "bob". look for a list/array prop called "bobs" maybe
-                    String pluralPropName = EnglishUtil.derivePlural(key);
-                    property = what.resolve(pluralPropName);
-                    if (property == null) {
-                        throw new IllegalArgumentException("cannot find mapping for key " + from.getSimpleName() + "." + key);
-                    }
-                    populateFromStrings(what, property, values);
+                //could not find prop "bob". look for a list/array prop called "bobs" maybe
+                String pluralPropName = EnglishUtil.derivePlural(key);
+                property = what.resolve(pluralPropName);
+                if (property == null) {
+                    throw new IllegalArgumentException("cannot find mapping for key " + from.getSimpleName() + "." + key);
                 }
+                populateFromStrings(what, property, values);
             }
-        }
-    }
-
-    private static void populateFromString(Pod pod, Property property, String value) {
-        PropertyType propertyType = property.getType();
-        switch (propertyType) {
-            case SIMPLE:
-                pod.set(property, value);
-                break;
-            case ARRAY:
-                ((ArrayProperty)property).setFromStrings(pod.getBean(), Collections.singletonList(value));
-                break;
-            case COLLECTION:
-                ((CollectionProperty)property).setFromStrings(pod.getBean(), Collections.singletonList(value));
-                break;
-            case MAP:
-                throw new IllegalArgumentException();
-            default:
-                throw new UnsupportedOperationException("unhandled " + propertyType);
         }
     }
 
@@ -131,7 +93,11 @@ public class ConfigLib {
         PropertyType propertyType = property.getType();
         switch (propertyType) {
             case SIMPLE:
-                throw new IllegalArgumentException();
+                if (values.size() != 1) {
+                    throw new IllegalArgumentException();
+                }
+                pod.set(property, values.get(0));
+                break;
             case ARRAY:
                 ((ArrayProperty)property).setFromStrings(pod.getBean(), values);
                 break;
@@ -145,41 +111,27 @@ public class ConfigLib {
         }
     }
 
-    private static void populate(Pod pod, Property property, Profile.Section from) {
-        PropertyType propertyType = property.getType();
-        switch (propertyType) {
-            case SIMPLE:
-                Type beanType = property.getValueType();
-                Pod innerPod = Beanz.wrap(ReflectionUtil.erase(beanType));
-                populate(innerPod, from);
-                pod.set(property, innerPod.getBean());
-                break;
-            case ARRAY:
-            case COLLECTION:
-                throw new IllegalArgumentException(); //TODO - consider treating as collection/array of size 1?
-            case MAP:
-                MapProperty mapProperty = (MapProperty) property;
-                Map<String, String> strMap = toMap(from);
-                mapProperty.setFromStrings(pod.getBean(), strMap);
-                break;
-            default:
-                throw new UnsupportedOperationException("unhandled " + propertyType);
-        }
-    }
-
     private static void populateFromSections(Pod pod, Property property, List<Profile.Section> from) {
         PropertyType propertyType = property.getType();
         Class<?> beanClass;
         Collection<Object> values;
+        Pod elementPod;
         switch (propertyType) {
             case SIMPLE:
-                throw new IllegalArgumentException();
+                if (from.size() != 1) {
+                    throw new IllegalArgumentException();
+                }
+                beanClass = ReflectionUtil.erase(property.getValueType());
+                elementPod = Beanz.wrap(beanClass);
+                populate(elementPod, from.get(0));
+                pod.set(property, elementPod.getBean());
+                break;
             case ARRAY:
                 ArrayProperty arrayProperty = (ArrayProperty) property;
                 beanClass = ReflectionUtil.erase(arrayProperty.getElementType());
                 values = new ArrayList<>(from.size());
                 for (Profile.Section section : from) {
-                    Pod elementPod = Beanz.wrap(beanClass);
+                    elementPod = Beanz.wrap(beanClass);
                     populate(elementPod, section);
                     values.add(elementPod.getBean());
                 }
@@ -190,14 +142,20 @@ public class ConfigLib {
                 beanClass = ReflectionUtil.erase(collectionProperty.getElementType());
                 values = new ArrayList<>(from.size());
                 for (Profile.Section section : from) {
-                    Pod elementPod = Beanz.wrap(beanClass);
+                    elementPod = Beanz.wrap(beanClass);
                     populate(elementPod, section);
                     values.add(elementPod.getBean());
                 }
                 collectionProperty.setCollection(pod.getBean(), values);
                 break;
             case MAP:
-                throw new IllegalArgumentException();
+                if (from.size() != 1) {
+                    throw new IllegalArgumentException();
+                }
+                MapProperty mapProperty = (MapProperty) property;
+                Map<String, String> strMap = toMap(from.get(0));
+                mapProperty.setFromStrings(pod.getBean(), strMap);
+                break;
             default:
                 throw new UnsupportedOperationException("unhandled " + propertyType);
         }
