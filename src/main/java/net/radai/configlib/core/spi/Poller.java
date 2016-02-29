@@ -15,27 +15,24 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core;
+package net.radai.configlib.core.spi;
 
-import net.radai.configlib.core.api.ConfigurationService;
-import net.radai.configlib.core.spi.NopPostProcessor;
-import net.radai.configlib.fs.PathWatcher;
-import net.radai.configlib.ini.IniBeanCodec;
-
-import java.nio.file.Path;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class ConfigLib {
+public interface Poller {
+    void start();
+    void stop();
+    void register(Listener newListener);
+    void unregister(Listener existingListener);
+    InputStream fetch() throws IOException;
+    OutputStream store() throws IOException;
 
-    public static <T> ConfigurationService<T> create(Class<T> configClass, Path configFile) {
-        return new ConfigurationService<>(
-                configClass,
-                true,
-                new PathWatcher(configFile),
-                new IniBeanCodec("UTF-8"),
-                new NopPostProcessor()
-        );
+    interface Listener {
+        void sourceChanged(InputStream newContents) throws IOException;
     }
 }

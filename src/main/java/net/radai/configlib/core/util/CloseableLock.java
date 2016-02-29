@@ -15,39 +15,23 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.cats;
+package net.radai.configlib.core.util;
 
-import java.util.List;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class Cats {
-    private String creator;
-    private List<String> comments;
-    private List<Cat> cats;
+public class CloseableLock implements AutoCloseable {
+    private final Lock lock;
 
-    public String getCreator() {
-        return creator;
+    public CloseableLock(Lock lock) {
+        this.lock = lock;
+        this.lock.lock();
     }
 
-    public void setCreator(String creator) {
-        this.creator = creator;
-    }
-
-    public List<String> getComments() {
-        return comments;
-    }
-
-    public void setComments(List<String> comments) {
-        this.comments = comments;
-    }
-
-    public List<Cat> getCats() {
-        return cats;
-    }
-
-    public void setCats(List<Cat> cats) {
-        this.cats = cats;
+    @Override
+    public void close() throws Exception {
+        this.lock.unlock();
     }
 }

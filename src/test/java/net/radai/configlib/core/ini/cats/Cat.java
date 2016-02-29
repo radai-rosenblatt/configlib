@@ -15,7 +15,7 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.cats;
+package net.radai.configlib.core.ini.cats;
 
 import java.util.List;
 import java.util.Objects;

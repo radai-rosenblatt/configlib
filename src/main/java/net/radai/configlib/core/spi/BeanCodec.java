@@ -15,17 +15,16 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.api;
+package net.radai.configlib.core.spi;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Created by Radai Rosenblatt
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE, ElementType.FIELD, ElementType.METHOD})
-public @interface Section {
+public interface BeanCodec {
+    <T> T parse(Class<T> beanClass, InputStream from) throws IOException;
+    <T> void serialize(T beanInstance, OutputStream to) throws IOException;
 }

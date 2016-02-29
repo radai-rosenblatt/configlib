@@ -15,17 +15,39 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.api;
+package net.radai.configlib.core.ini.cats;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.util.List;
 
 /**
  * Created by Radai Rosenblatt
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.TYPE})
-public @interface Configuration {
+public class Cats {
+    private String creator;
+    private List<String> comments;
+    private List<Cat> cats;
+
+    public String getCreator() {
+        return creator;
+    }
+
+    public void setCreator(String creator) {
+        this.creator = creator;
+    }
+
+    public List<String> getComments() {
+        return comments;
+    }
+
+    public void setComments(List<String> comments) {
+        this.comments = comments;
+    }
+
+    public List<Cat> getCats() {
+        return cats;
+    }
+
+    public void setCats(List<Cat> cats) {
+        this.cats = cats;
+    }
 }

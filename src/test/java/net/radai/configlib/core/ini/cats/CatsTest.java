@@ -15,16 +15,13 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.cats;
+package net.radai.configlib.core.ini.cats;
 
-import net.radai.configlib.core.ConfigLib;
+import net.radai.configlib.ini.IniBeanCodec;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -35,10 +32,10 @@ public class CatsTest {
 
     @Test
     public void testParsingCats() throws Exception {
+        IniBeanCodec codec = new IniBeanCodec("UTF-8");
         Cats cats;
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("cats.ini")) {
-            Reader reader = new InputStreamReader(is, Charset.forName("UTF-8"));
-            cats = ConfigLib.parse(Cats.class, reader);
+            cats = codec.parse(Cats.class, is);
         }
         Assert.assertNotNull(cats);
         Assert.assertEquals("bob", cats.getCreator());
@@ -52,10 +49,10 @@ public class CatsTest {
 
     @Test
     public void testParsingCat() throws Exception {
+        IniBeanCodec codec = new IniBeanCodec("UTF-8");
         Cats cats;
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("cat.ini")) {
-            Reader reader = new InputStreamReader(is, Charset.forName("UTF-8"));
-            cats = ConfigLib.parse(Cats.class, reader);
+            cats = codec.parse(Cats.class, is);
         }
         Assert.assertNotNull(cats);
         Assert.assertEquals("bob", cats.getCreator());
