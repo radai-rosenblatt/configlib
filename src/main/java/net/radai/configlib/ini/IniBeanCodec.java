@@ -22,6 +22,7 @@ import net.radai.beanz.api.*;
 import net.radai.beanz.util.ReflectionUtil;
 import net.radai.configlib.core.spi.BeanCodec;
 import net.radai.configlib.core.util.EnglishUtil;
+import org.ini4j.Config;
 import org.ini4j.Ini;
 import org.ini4j.Profile;
 import org.ini4j.spi.IniBuilder;
@@ -44,9 +45,13 @@ public class IniBeanCodec implements BeanCodec {
         this.charset = charset;
     }
 
+    public String getCharset() {
+        return charset;
+    }
+
     @Override
     public <T> T parse(Class<T> beanClass, InputStream from) throws IOException {
-        Pod<T> pod = Beanz.wrap(beanClass);
+        Bean<T> bean = Beanz.create(beanClass);
         Ini ini;
         try (Reader reader = new InputStreamReader(from, charset)){
             ini = readIni(reader);
@@ -62,24 +67,24 @@ public class IniBeanCodec implements BeanCodec {
                 if (sectionInstances.size() != 1) {
                     throw new IllegalStateException();
                 }
-                populate(pod, sectionInstances.get(0));
+                populate(bean, sectionInstances.get(0));
             } else {
                 Property property;
-                property = pod.resolve(sectionName);
+                property = bean.getProperty(sectionName);
                 if (property == null) {
                     String pluralName = EnglishUtil.derivePlural(sectionName); //if section is "dog" maybe there's a prop "dogs"
-                    property = pod.resolve(pluralName);
+                    property = bean.getProperty(pluralName);
                 }
                 if (property == null) {
                     throw new IllegalArgumentException();
                 }
-                populateFromSections(pod, property, sectionInstances);
+                populateFromSections(property, sectionInstances);
             }
         }
-        return pod.getBean();
+        return bean.getBean();
     }
 
-    private static void populate(Pod what, Profile.Section from) {
+    private static void populate(Bean what, Profile.Section from) {
         Set<String> keys = from.keySet();
         for (String key : keys) {
             List<String> values = from.getAll(key);
@@ -87,35 +92,35 @@ public class IniBeanCodec implements BeanCodec {
                 throw new IllegalStateException();
             }
             Property property;
-            property = what.resolve(key);
+            property = what.getProperty(key);
             if (property != null) {
-                populateFromStrings(what, property, values);
+                populateFromStrings(property, values);
             } else {
                 //could not find prop "bob". look for a list/array prop called "bobs" maybe
                 String pluralPropName = EnglishUtil.derivePlural(key);
-                property = what.resolve(pluralPropName);
+                property = what.getProperty(pluralPropName);
                 if (property == null) {
                     throw new IllegalArgumentException("cannot find mapping for key " + from.getSimpleName() + "." + key);
                 }
-                populateFromStrings(what, property, values);
+                populateFromStrings(property, values);
             }
         }
     }
 
-    private static void populateFromStrings(Pod pod, Property property, List<String> values) {
+    private static void populateFromStrings(Property property, List<String> values) {
         PropertyType propertyType = property.getType();
         switch (propertyType) {
             case SIMPLE:
                 if (values.size() != 1) {
                     throw new IllegalArgumentException();
                 }
-                pod.set(property, values.get(0));
+                property.set(values.get(0));
                 break;
             case ARRAY:
-                ((ArrayProperty)property).setFromStrings(pod.getBean(), values);
+                ((ArrayProperty)property).setFromStrings(values);
                 break;
             case COLLECTION:
-                ((CollectionProperty)property).setFromStrings(pod.getBean(), values);
+                ((CollectionProperty)property).setFromStrings(values);
                 break;
             case MAP:
                 throw new IllegalArgumentException();
@@ -124,42 +129,42 @@ public class IniBeanCodec implements BeanCodec {
         }
     }
 
-    private static void populateFromSections(Pod pod, Property property, List<Profile.Section> from) {
+    private static void populateFromSections(Property property, List<Profile.Section> from) {
         PropertyType propertyType = property.getType();
         Class<?> beanClass;
         Collection<Object> values;
-        Pod elementPod;
+        Bean elementPod;
         switch (propertyType) {
             case SIMPLE:
                 if (from.size() != 1) {
                     throw new IllegalArgumentException();
                 }
                 beanClass = ReflectionUtil.erase(property.getValueType());
-                elementPod = Beanz.wrap(beanClass);
+                elementPod = Beanz.create(beanClass);
                 populate(elementPod, from.get(0));
-                pod.set(property, elementPod.getBean());
+                property.set(elementPod.getBean());
                 break;
             case ARRAY:
                 ArrayProperty arrayProperty = (ArrayProperty) property;
                 beanClass = ReflectionUtil.erase(arrayProperty.getElementType());
                 values = new ArrayList<>(from.size());
                 for (Profile.Section section : from) {
-                    elementPod = Beanz.wrap(beanClass);
+                    elementPod = Beanz.create(beanClass);
                     populate(elementPod, section);
                     values.add(elementPod.getBean());
                 }
-                arrayProperty.setArray(pod.getBean(), values);
+                arrayProperty.setArray(values);
                 break;
             case COLLECTION:
                 CollectionProperty collectionProperty = (CollectionProperty) property;
                 beanClass = ReflectionUtil.erase(collectionProperty.getElementType());
                 values = new ArrayList<>(from.size());
                 for (Profile.Section section : from) {
-                    elementPod = Beanz.wrap(beanClass);
+                    elementPod = Beanz.create(beanClass);
                     populate(elementPod, section);
                     values.add(elementPod.getBean());
                 }
-                collectionProperty.setCollection(pod.getBean(), values);
+                collectionProperty.setCollection(values);
                 break;
             case MAP:
                 if (from.size() != 1) {
@@ -167,7 +172,7 @@ public class IniBeanCodec implements BeanCodec {
                 }
                 MapProperty mapProperty = (MapProperty) property;
                 Map<String, String> strMap = toMap(from.get(0));
-                mapProperty.setFromStrings(pod.getBean(), strMap);
+                mapProperty.setFromStrings(strMap);
                 break;
             default:
                 throw new UnsupportedOperationException("unhandled " + propertyType);
@@ -176,7 +181,142 @@ public class IniBeanCodec implements BeanCodec {
 
     @Override
     public <T> void serialize(T beanInstance, OutputStream to) throws IOException {
-        throw new UnsupportedOperationException("serialization not implemented yet");
+        Config iniConfig = buildIniConfig();
+        Ini ini = new Ini();
+        ini.setConfig(iniConfig);
+        Profile.Section defaultSection = ini.add(iniConfig.getGlobalSectionName());
+
+        Bean<T> bean = Beanz.wrap(beanInstance);
+        for (Map.Entry<String, Property> propEntry : bean.getProperties().entrySet()) {
+            String propName = propEntry.getKey();
+            Property prop = propEntry.getValue();
+            Codec codec = prop.getCodec();
+            Collection<?> rawCollection;
+            List<String> stringValues;
+            String singular;
+            //TODO - differentiate between nulls and empty sets
+            switch (prop.getType()) {
+                case SIMPLE:
+                    if (codec != null) {
+                        //prop --> string
+                        String stringValue = prop.getAsString();
+                        if (stringValue != null) {
+                            defaultSection.put(propName, stringValue);
+                        }
+                    } else {
+                        //prop --> section
+                        Object rawValue = prop.get();
+                        if (rawValue != null) {
+                            Bean innerBean = Beanz.wrap(rawValue);
+                            Profile.Section targetSection = ini.add(propName);
+                            serializeToSection(innerBean, targetSection);
+                        }
+                    }
+                    break;
+                case ARRAY:
+                    ArrayProperty arrayProp = (ArrayProperty) prop;
+                    singular = EnglishUtil.deriveSingular(propName);
+                    if (codec != null) {
+                        //prop --> multi value (potentially under singular name)
+                        stringValues = arrayProp.getAsStrings();
+                        if (stringValues != null) {
+                            defaultSection.putAll(singular, stringValues);
+                        }
+                    } else {
+                        //prop --> multi section (potentially under singular name)
+                        rawCollection = arrayProp.getAsList();
+                        if (rawCollection != null) {
+                            for (Object rawValue : rawCollection) {
+                                Bean innerBean = Beanz.wrap(rawValue);
+                                Profile.Section targetSection = ini.add(singular);
+                                serializeToSection(innerBean, targetSection);
+                            }
+                        }
+                    }
+                    break;
+                case COLLECTION:
+                    CollectionProperty collectionProp = (CollectionProperty) prop;
+                    singular = EnglishUtil.deriveSingular(propName);
+                    if (codec != null) {
+                        //prop --> multi value (potentially under singular name)
+                        Collection<String> asStrings = collectionProp.getAsStrings();
+                        if (asStrings != null) {
+                            defaultSection.putAll(singular, new ArrayList<>(asStrings)); //orig might be a set
+                        }
+                    } else {
+                        //prop --> multi section (potentially under singular name)
+                        rawCollection = collectionProp.getCollection();
+                        if (rawCollection != null) {
+                            for (Object rawValue : rawCollection) {
+                                Bean innerBean = Beanz.wrap(rawValue);
+                                Profile.Section targetSection = ini.add(singular);
+                                serializeToSection(innerBean, targetSection);
+                            }
+                        }
+                    }
+                    break;
+                case MAP:
+                    MapProperty mapProp = (MapProperty) prop;
+                    if (codec != null) {
+                        //prop --> section
+                        Map<String, String> asStrings = mapProp.getAsStrings();
+                        if (asStrings != null) {
+                            Profile.Section targetSection = ini.add(propName);
+                            targetSection.putAll(asStrings);
+                        }
+                    } else {
+                        throw new UnsupportedOperationException(); //TODO - figure out how to map Map<String, ComplexBean> ?
+                    }
+                    break;
+                default:
+                    throw new IllegalStateException("unhandled: " + prop.getType());
+            }
+        }
+
+        ini.store(to);
+    }
+
+    private static void serializeToSection(Bean<?> bean, Profile.Section section) {
+        for (Map.Entry<String, Property> propEntry : bean.getProperties().entrySet()) {
+            String propName = propEntry.getKey();
+            Property prop = propEntry.getValue();
+            Codec codec = prop.getCodec();
+            if (codec == null) {
+                throw new UnsupportedOperationException(); //ini does not support nested sections
+            }
+            String singular;
+            switch (prop.getType()) {
+                case SIMPLE:
+                    //prop --> string
+                    String stringValue = prop.getAsString();
+                    if (stringValue != null) {
+                        section.put(propName, stringValue);
+                    }
+                    break;
+                case ARRAY:
+                    //prop --> multi value (potentially under singular name)
+                    ArrayProperty arrayProp = (ArrayProperty) prop;
+                    singular = EnglishUtil.deriveSingular(propName);
+                    List<String> stringValues = arrayProp.getAsStrings();
+                    if (stringValues != null) {
+                        section.putAll(singular, stringValues);
+                    }
+                    break;
+                case COLLECTION:
+                    //prop --> multi value (potentially under singular name)
+                    CollectionProperty collectionProp = (CollectionProperty) prop;
+                    singular = EnglishUtil.deriveSingular(propName);
+                    Collection<String> asStrings = collectionProp.getAsStrings();
+                    if (asStrings != null) {
+                        section.putAll(singular, new ArrayList<>(asStrings)); //turn into a list (orig might be a set)
+                    }
+                    break;
+                case MAP:
+                    throw new UnsupportedOperationException(); //ini does not support nested sections
+                default:
+                    throw new IllegalStateException("unhandled: " + prop.getType());
+            }
+        }
     }
 
     private static Map<String, String> toMap(Profile.Section from) {
@@ -192,15 +332,20 @@ public class IniBeanCodec implements BeanCodec {
     }
 
     private static Ini readIni(Reader from) throws IOException {
-        org.ini4j.Config iniConfig = org.ini4j.Config.getGlobal();
-        iniConfig.setMultiSection(true);
-        iniConfig.setMultiOption(true);
-        iniConfig.setGlobalSection(true);
+        Config iniConfig = buildIniConfig();
         IniParser parser = IniParser.newInstance(iniConfig);
         Ini ini = new Ini();
         ini.setConfig(iniConfig);
         IniBuilder iniBuilder = IniBuilder.newInstance(ini);
         parser.parse(from, iniBuilder);
         return ini;
+    }
+
+    private static Config buildIniConfig() {
+        Config iniConfig = new Config();
+        iniConfig.setMultiSection(true);
+        iniConfig.setMultiOption(true);
+        iniConfig.setGlobalSection(true);
+        return iniConfig;
     }
 }

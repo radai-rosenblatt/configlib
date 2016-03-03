@@ -21,6 +21,7 @@ import net.radai.configlib.ini.IniBeanCodec;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,6 +46,13 @@ public class CatsTest {
                 new Cat("Tardar Sauce", "Grumpy Cat", Collections.singletonList("nothing")),
                 new Cat("Snowball", "Kitler", null)
                 ), cats.getCats());
+
+        String serialized;
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
+            codec.serialize(cats, os);
+            serialized = new String(os.toByteArray(), codec.getCharset());
+        }
+        //TODO - assert serialized is the same as origin
     }
 
     @Test

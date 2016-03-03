@@ -43,11 +43,8 @@ public class EnglishUtil {
         if (lowercase.endsWith("ies")) {
             return propName.substring(0, propName.length()-3) + "y"; //pantries --> pantry
         }
-        if (lowercase.endsWith("es")) {
-            return propName.substring(0, propName.length()-2); //boxes --> box
-        }
         if (lowercase.endsWith("s")) {
-            return propName.substring(0, propName.length()-1); //cats --> cat
+            return propName.substring(0, propName.length()-1); //cats --> cat, likes --> like
         }
         return propName;
     }
