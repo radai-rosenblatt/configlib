@@ -15,11 +15,28 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.ini.cats;
+/*
+ * This file is part of ConfigLib.
+ *
+ * ConfigLib is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ConfigLib is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+package net.radai.configlib.ini;
 
 import com.google.common.io.ByteStreams;
-import net.radai.configlib.core.ini.IniUtil;
-import net.radai.configlib.ini.IniBeanCodec;
+import net.radai.configlib.cats.Cat;
+import net.radai.configlib.cats.Cats;
 import org.ini4j.Ini;
 import org.junit.Assert;
 import org.junit.Test;
@@ -31,7 +48,7 @@ import java.util.Collections;
 /**
  * Created by Radai Rosenblatt
  */
-public class CatsTest {
+public class IniBeanCodecTest {
 
     @Test
     public void testParsingCats() throws Exception {

@@ -15,7 +15,7 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.ini;
+package net.radai.configlib.ini;
 
 import org.ini4j.Config;
 import org.ini4j.Ini;

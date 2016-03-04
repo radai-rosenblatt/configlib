@@ -15,8 +15,10 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.ini.cats;
+package net.radai.configlib.cats;
 
+import javax.validation.Valid;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -26,6 +28,19 @@ public class Cats {
     private String creator;
     private List<String> comments;
     private List<Cat> cats;
+
+    public Cats() {
+    }
+
+    public Cats(String creator, List<String> comments, Cat ... cats) {
+        this.creator = creator;
+        this.comments = comments;
+        if (cats == null || cats.length == 0) {
+            this.cats = null;
+        } else {
+            this.cats = Arrays.asList(cats);
+        }
+    }
 
     public String getCreator() {
         return creator;
@@ -43,6 +58,7 @@ public class Cats {
         this.comments = comments;
     }
 
+    @Valid
     public List<Cat> getCats() {
         return cats;
     }

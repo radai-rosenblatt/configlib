@@ -15,8 +15,9 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.ini.cats;
+package net.radai.configlib.cats;
 
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Objects;
 
@@ -26,7 +27,8 @@ import java.util.Objects;
 public class Cat {
     private String name;
     private String description;
-    private List<String> likes;
+    @Valid
+    private List<@NotLettuce String> likes;
 
     public Cat() {
     }
