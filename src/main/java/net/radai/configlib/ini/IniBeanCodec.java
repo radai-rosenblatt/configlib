@@ -191,8 +191,6 @@ public class IniBeanCodec implements BeanCodec {
             String propName = propEntry.getKey();
             Property prop = propEntry.getValue();
             Codec codec = prop.getCodec();
-            Collection<?> rawCollection;
-            List<String> stringValues;
             String singular;
             //TODO - differentiate between nulls and empty sets
             switch (prop.getType()) {
@@ -218,20 +216,13 @@ public class IniBeanCodec implements BeanCodec {
                     singular = Inflection.singularize(propName);
                     if (codec != null) {
                         //prop --> multi value (potentially under singular name)
-                        stringValues = arrayProp.getAsStrings();
+                        List<String> stringValues = arrayProp.getAsStrings();
                         if (stringValues != null) {
                             defaultSection.putAll(singular, stringValues);
                         }
                     } else {
                         //prop --> multi section (potentially under singular name)
-                        rawCollection = arrayProp.getAsList();
-                        if (rawCollection != null) {
-                            for (Object rawValue : rawCollection) {
-                                Bean innerBean = Beanz.wrap(rawValue);
-                                Profile.Section targetSection = ini.add(singular);
-                                serializeToSection(innerBean, targetSection);
-                            }
-                        }
+                        serializeToSections(ini, arrayProp.getAsList(), singular);
                     }
                     break;
                 case COLLECTION:
@@ -245,14 +236,7 @@ public class IniBeanCodec implements BeanCodec {
                         }
                     } else {
                         //prop --> multi section (potentially under singular name)
-                        rawCollection = collectionProp.getCollection();
-                        if (rawCollection != null) {
-                            for (Object rawValue : rawCollection) {
-                                Bean innerBean = Beanz.wrap(rawValue);
-                                Profile.Section targetSection = ini.add(singular);
-                                serializeToSection(innerBean, targetSection);
-                            }
-                        }
+                        serializeToSections(ini, collectionProp.getCollection(), singular);
                     }
                     break;
                 case MAP:
@@ -274,6 +258,16 @@ public class IniBeanCodec implements BeanCodec {
         }
 
         ini.store(to);
+    }
+
+    private void serializeToSections(Ini ini, Iterable<?> beans, String propName) {
+        if (beans != null) {
+            for (Object rawValue : beans) {
+                Bean innerBean = Beanz.wrap(rawValue);
+                Profile.Section targetSection = ini.add(propName);
+                serializeToSection(innerBean, targetSection);
+            }
+        }
     }
 
     private static void serializeToSection(Bean<?> bean, Profile.Section section) {
