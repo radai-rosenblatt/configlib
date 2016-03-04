@@ -17,12 +17,14 @@
 
 package net.radai.configlib.core.ini.cats;
 
+import com.google.common.io.ByteStreams;
+import net.radai.configlib.core.ini.IniUtil;
 import net.radai.configlib.ini.IniBeanCodec;
+import org.ini4j.Ini;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -35,9 +37,11 @@ public class CatsTest {
     public void testParsingCats() throws Exception {
         IniBeanCodec codec = new IniBeanCodec("UTF-8");
         Cats cats;
+        byte[] contents;
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("cats.ini")) {
-            cats = codec.parse(Cats.class, is);
+            contents = ByteStreams.toByteArray(is);
         }
+        cats = codec.parse(Cats.class, new ByteArrayInputStream(contents));
         Assert.assertNotNull(cats);
         Assert.assertEquals("bob", cats.getCreator());
         Assert.assertEquals(Arrays.asList("funny cats", "and stuff"), cats.getComments());
@@ -52,7 +56,9 @@ public class CatsTest {
             codec.serialize(cats, os);
             serialized = new String(os.toByteArray(), codec.getCharset());
         }
-        //TODO - assert serialized is the same as origin
+        Ini original = IniUtil.read(new InputStreamReader(new ByteArrayInputStream(contents), "UTF-8"));
+        Ini produced = IniUtil.read(new StringReader(serialized));
+        Assert.assertTrue(IniUtil.equals(original, produced, false));
     }
 
     @Test

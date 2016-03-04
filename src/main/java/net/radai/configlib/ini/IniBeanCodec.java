@@ -21,7 +21,7 @@ import net.radai.beanz.Beanz;
 import net.radai.beanz.api.*;
 import net.radai.beanz.util.ReflectionUtil;
 import net.radai.configlib.core.spi.BeanCodec;
-import net.radai.configlib.core.util.EnglishUtil;
+import net.radai.configlib.core.util.Inflection;
 import org.ini4j.Config;
 import org.ini4j.Ini;
 import org.ini4j.Profile;
@@ -72,7 +72,7 @@ public class IniBeanCodec implements BeanCodec {
                 Property property;
                 property = bean.getProperty(sectionName);
                 if (property == null) {
-                    String pluralName = EnglishUtil.derivePlural(sectionName); //if section is "dog" maybe there's a prop "dogs"
+                    String pluralName = Inflection.pluralize(sectionName); //if section is "dog" maybe there's a prop "dogs"
                     property = bean.getProperty(pluralName);
                 }
                 if (property == null) {
@@ -97,7 +97,7 @@ public class IniBeanCodec implements BeanCodec {
                 populateFromStrings(property, values);
             } else {
                 //could not find prop "bob". look for a list/array prop called "bobs" maybe
-                String pluralPropName = EnglishUtil.derivePlural(key);
+                String pluralPropName = Inflection.pluralize(key);
                 property = what.getProperty(pluralPropName);
                 if (property == null) {
                     throw new IllegalArgumentException("cannot find mapping for key " + from.getSimpleName() + "." + key);
@@ -215,7 +215,7 @@ public class IniBeanCodec implements BeanCodec {
                     break;
                 case ARRAY:
                     ArrayProperty arrayProp = (ArrayProperty) prop;
-                    singular = EnglishUtil.deriveSingular(propName);
+                    singular = Inflection.singularize(propName);
                     if (codec != null) {
                         //prop --> multi value (potentially under singular name)
                         stringValues = arrayProp.getAsStrings();
@@ -236,7 +236,7 @@ public class IniBeanCodec implements BeanCodec {
                     break;
                 case COLLECTION:
                     CollectionProperty collectionProp = (CollectionProperty) prop;
-                    singular = EnglishUtil.deriveSingular(propName);
+                    singular = Inflection.singularize(propName);
                     if (codec != null) {
                         //prop --> multi value (potentially under singular name)
                         Collection<String> asStrings = collectionProp.getAsStrings();
@@ -296,7 +296,7 @@ public class IniBeanCodec implements BeanCodec {
                 case ARRAY:
                     //prop --> multi value (potentially under singular name)
                     ArrayProperty arrayProp = (ArrayProperty) prop;
-                    singular = EnglishUtil.deriveSingular(propName);
+                    singular = Inflection.singularize(propName);
                     List<String> stringValues = arrayProp.getAsStrings();
                     if (stringValues != null) {
                         section.putAll(singular, stringValues);
@@ -305,7 +305,7 @@ public class IniBeanCodec implements BeanCodec {
                 case COLLECTION:
                     //prop --> multi value (potentially under singular name)
                     CollectionProperty collectionProp = (CollectionProperty) prop;
-                    singular = EnglishUtil.deriveSingular(propName);
+                    singular = Inflection.singularize(propName);
                     Collection<String> asStrings = collectionProp.getAsStrings();
                     if (asStrings != null) {
                         section.putAll(singular, new ArrayList<>(asStrings)); //turn into a list (orig might be a set)
