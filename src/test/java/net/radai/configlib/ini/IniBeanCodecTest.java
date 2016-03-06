@@ -15,28 +15,12 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * This file is part of ConfigLib.
- *
- * ConfigLib is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * ConfigLib is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
- */
-
 package net.radai.configlib.ini;
 
 import com.google.common.io.ByteStreams;
 import net.radai.configlib.cats.Cat;
 import net.radai.configlib.cats.Cats;
+import net.radai.configlib.spi.AbstractBeanCodecTest;
 import org.ini4j.Ini;
 import org.junit.Assert;
 import org.junit.Test;
@@ -48,11 +32,16 @@ import java.util.Collections;
 /**
  * Created by Radai Rosenblatt
  */
-public class IniBeanCodecTest {
+public class IniBeanCodecTest extends AbstractBeanCodecTest{
+
+    @Override
+    protected IniBeanCodec buildCodec() {
+        return new IniBeanCodec("UTF-8");
+    }
 
     @Test
     public void testParsingCats() throws Exception {
-        IniBeanCodec codec = new IniBeanCodec("UTF-8");
+        IniBeanCodec codec = buildCodec();
         Cats cats;
         byte[] contents;
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("cats.ini")) {
@@ -80,7 +69,7 @@ public class IniBeanCodecTest {
 
     @Test
     public void testParsingCat() throws Exception {
-        IniBeanCodec codec = new IniBeanCodec("UTF-8");
+        IniBeanCodec codec = buildCodec();
         Cats cats;
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("cat.ini")) {
             cats = codec.parse(Cats.class, is);

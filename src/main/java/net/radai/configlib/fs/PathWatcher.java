@@ -17,18 +17,19 @@
 
 package net.radai.configlib.fs;
 
-import net.radai.configlib.core.spi.AbstractPoller;
+import net.radai.configlib.core.spi.PollerSupport;
 import net.radai.configlib.core.util.FSUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.*;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class PathWatcher extends AbstractPoller {
+public class PathWatcher extends PollerSupport {
     private final Path path;
     private volatile Thread pollThread;
     private volatile boolean on = false;
@@ -39,7 +40,11 @@ public class PathWatcher extends AbstractPoller {
 
     @Override
     public InputStream fetch() throws IOException {
-        return Files.newInputStream(path, StandardOpenOption.READ);
+        try {
+            return Files.newInputStream(path, StandardOpenOption.READ);
+        } catch (NoSuchFileException e) {
+            return null;
+        }
     }
 
     @Override
@@ -52,8 +57,8 @@ public class PathWatcher extends AbstractPoller {
         if (on || pollThread != null) {
             throw new IllegalStateException();
         }
-        startPollThread();
         on = true;
+        startPollThread();
     }
 
     @Override
@@ -69,9 +74,11 @@ public class PathWatcher extends AbstractPoller {
         if (pollThread != null) {
             throw new IllegalStateException();
         }
-        pollThread = new Thread(new PollRunnable(), "watch thread for " + path);
+        PollRunnable runnable = new PollRunnable();
+        pollThread = new Thread(runnable, "watch thread for " + path);
         pollThread.setDaemon(true);
         pollThread.start();
+        runnable.waitUntilWatching();
     }
 
     private void stopPollThread() {
@@ -89,6 +96,15 @@ public class PathWatcher extends AbstractPoller {
     }
 
     private class PollRunnable implements Runnable {
+        private final CountDownLatch startLatch = new CountDownLatch(1);
+
+        private void waitUntilWatching() {
+            try {
+                startLatch.await();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        }
 
         @Override
         public void run() {
@@ -102,6 +118,7 @@ public class PathWatcher extends AbstractPoller {
                 try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
                     WatchKey watchKey = folder.register(watchService, kinds);
                     while (on) {
+                        startLatch.countDown();
                         WatchKey key = watchService.take();
                         boolean matched = false;
                         for (WatchEvent<?> event : key.pollEvents()) {
@@ -121,6 +138,7 @@ public class PathWatcher extends AbstractPoller {
                             try (InputStream is = Files.newInputStream(path, StandardOpenOption.READ)) {
                                 fire(is);
                             } catch (IOException e) {
+                                int g = 6;
                                 //TODO - log
                             }
                         }
@@ -129,12 +147,18 @@ public class PathWatcher extends AbstractPoller {
                         }
                     }
                 } catch (Exception e) {
+                    int g = 6;
                     //TODO - log
                 }
             }
         }
     }
 
+    /**
+     * writes into a temp file and attempts to atomically swap to the destination file
+     * when the temp file is closed (==when all writes are complete). also pauses watcher
+     * during the swap to avoid getting an event for our own modifications.
+     */
     private class FileSwapOutputStream extends OutputStream {
         private final Path finalDestination;
         private final Path tempDestination;

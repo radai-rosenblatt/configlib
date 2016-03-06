@@ -30,8 +30,22 @@ import java.util.Set;
 public class BeanValidationPostProcessor implements BeanPostProcessor{
     private static final Validator validator = Validation.buildDefaultValidatorFactory().getValidator(); //thread safe
 
+    private boolean allowNullObject;
+
+    public BeanValidationPostProcessor() {
+        this(false);
+    }
+
+    public BeanValidationPostProcessor(boolean allowNullObject) {
+        this.allowNullObject = allowNullObject;
+    }
+
     @Override
     public <T> Decision<T> validate(T currConf, T discoveredConf) throws IllegalArgumentException {
+        if (discoveredConf == null) {
+            //nulls are not allowed under bean validation spec, so special handling
+            return new Decision<>(allowNullObject, null, false);
+        }
         Set<ConstraintViolation<T>> violations = validator.validate(discoveredConf);
         if (!violations.isEmpty()) {
             return new Decision<>(false, null, false);

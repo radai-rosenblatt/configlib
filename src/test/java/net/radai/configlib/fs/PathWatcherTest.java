@@ -18,6 +18,7 @@
 package net.radai.configlib.fs;
 
 import com.google.common.io.ByteStreams;
+import net.radai.configlib.util.TestUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -30,7 +31,6 @@ import java.nio.file.StandardOpenOption;
  * Created by Radai Rosenblatt
  */
 public class PathWatcherTest {
-    private static final long INTERVAL = 100L;
 
     @Test
     public void testBasicScenario() throws Exception {
@@ -42,23 +42,23 @@ public class PathWatcherTest {
         TracingListener listener = new TracingListener();
         watcher.register(listener);
         watcher.start();
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(0, listener.getNumEvents()); //nothing happened
         Files.createFile(targetFile);
         Assert.assertTrue(Files.exists(targetFile));
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(1, listener.getNumEvents());
         Assert.assertArrayEquals(new byte[] {}, listener.getLatestEvent());
         try (OutputStream os = Files.newOutputStream(targetFile, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
             os.write(new byte[]{1, 2, 3, 4});
         }
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(2, listener.getNumEvents());
         Assert.assertArrayEquals(new byte[] {1, 2, 3, 4}, listener.getLatestEvent());
         try (OutputStream os = Files.newOutputStream(targetFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
             os.write(new byte[]{5});
         }
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(3, listener.getNumEvents());
         Assert.assertArrayEquals(new byte[] {1, 2, 3, 4, 5}, listener.getLatestEvent());
     }
@@ -73,30 +73,33 @@ public class PathWatcherTest {
         try (OutputStream os = Files.newOutputStream(targetFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
             os.write(new byte[]{1, 2, 3, 4});
         }
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(0, listener.getNumEvents()); //not started
         watcher.start();
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(0, listener.getNumEvents()); //nothing happened
+        long start = System.nanoTime();
         try (OutputStream os = Files.newOutputStream(targetFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
+
             os.write(new byte[]{5, 6, 7, 8});
         }
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(1, listener.getNumEvents());
         Assert.assertArrayEquals(new byte[] {1, 2, 3, 4, 5, 6, 7, 8}, listener.getLatestEvent());
+        long tookNanos = listener.getLatestNanoTime() - start;
         watcher.stop();
         try (OutputStream os = Files.newOutputStream(targetFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
             os.write(new byte[]{9, 10});
         }
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(1, listener.getNumEvents()); //stopped
         watcher.start();
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(1, listener.getNumEvents()); //nothing happened
         try (OutputStream os = Files.newOutputStream(targetFile, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
             os.write(new byte[]{11, 12});
         }
-        Thread.sleep(INTERVAL);
+        TestUtil.waitForFsQuiesce();
         Assert.assertEquals(2, listener.getNumEvents());
         Assert.assertArrayEquals(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, listener.getLatestEvent());
     }

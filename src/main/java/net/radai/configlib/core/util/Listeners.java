@@ -15,69 +15,56 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.spi;
+package net.radai.configlib.core.util;
 
-import com.google.common.io.ByteStreams;
-import net.radai.configlib.core.util.CloseableLock;
-import net.radai.configlib.core.util.DelegateInputStream;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Consumer;
 
 /**
  * Created by Radai Rosenblatt
  */
-public abstract class AbstractPoller implements Poller {
+public class Listeners<T> {
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
-    private final List<Listener> listeners = new ArrayList<>();
+    private final List<T> listeners = new ArrayList<>();
 
-    @Override
-    public void register(Listener newListener) {
+    public void register(T newListener) {
+        if (newListener == null) {
+            throw new IllegalArgumentException();
+        }
         try (CloseableLock ignored = new CloseableLock(lock.writeLock())){
             if (listeners.contains(newListener)) {
                 throw new IllegalStateException("listener already registered: " + newListener);
             }
             listeners.add(newListener);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
         }
     }
 
-    @Override
-    public void unregister(Listener existingListener) {
+    public void unregister(T existingListener) {
+        if (existingListener == null) {
+            throw new IllegalArgumentException();
+        }
         try (CloseableLock ignored = new CloseableLock(lock.writeLock())){
             if (!listeners.remove(existingListener)) {
                 throw new IllegalStateException("listener not registered: " + existingListener);
             }
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
         }
     }
 
-    protected void fire(InputStream input) throws IOException {
+    public void forEach(Consumer<T> action) {
+        if (action == null) {
+            throw new IllegalArgumentException();
+        }
         try (CloseableLock ignored = new CloseableLock(lock.readLock())){
-            if (listeners.isEmpty()) {
-                //TODO - log.warn ?
-                return;
-            } else if (listeners.size() == 1) {
-                listeners.get(0).sourceChanged(input);
-            } else {
-                byte[] data = ByteStreams.toByteArray(input);
-                for (Listener listener : listeners) {
-                    try {
-                        listener.sourceChanged(new ByteArrayInputStream(data));
-                    } catch (Exception e) {
-                        //TODO - log
-                    }
+            listeners.forEach(listener -> {
+                try {
+                    action.accept(listener);
+                } catch (Exception e) {
+                    //TODO - log error
                 }
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
+            });
         }
     }
 }

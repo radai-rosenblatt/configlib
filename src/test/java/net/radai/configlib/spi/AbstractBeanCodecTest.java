@@ -15,25 +15,23 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core;
+package net.radai.configlib.spi;
 
-import net.radai.configlib.core.spi.NopPostProcessor;
-import net.radai.configlib.fs.PathWatcher;
-import net.radai.configlib.ini.IniBeanCodec;
-
-import java.nio.file.Path;
+import net.radai.configlib.cats.Cats;
+import net.radai.configlib.core.spi.BeanCodec;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class ConfigLib {
+public abstract class AbstractBeanCodecTest {
+    protected abstract BeanCodec buildCodec();
 
-    public static <T> ConfigurationService<T> create(Class<T> configClass, Path configFile) {
-        return new ConfigurationService<>(
-                configClass,
-                new PathWatcher(configFile),
-                new IniBeanCodec("UTF-8"),
-                new NopPostProcessor()
-        );
+    @Test
+    public void testNullInputStream() throws Exception {
+        BeanCodec codec = buildCodec();
+        Cats parsed = codec.parse(Cats.class, null);
+        Assert.assertNull("null input stream should result in null object", parsed);
     }
 }

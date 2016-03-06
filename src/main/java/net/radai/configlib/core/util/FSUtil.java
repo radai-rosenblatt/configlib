@@ -25,6 +25,9 @@ import java.nio.file.attribute.FileTime;
  * Created by Radai Rosenblatt
  */
 public class FSUtil {
+    public static final long POLL_MILLIS = 10L;
+    public static final int POLLS_TO_QUIESCE = 5;
+    public static final long MIN_DELAY_MILLIS = POLLS_TO_QUIESCE * POLL_MILLIS;
 
     /**
      * waits for a file to be "stable" (no modification over some period of time)
@@ -35,17 +38,19 @@ public class FSUtil {
             FileTime prevMtime = Files.getLastModifiedTime(path);
             FileTime mTime;
             int numSame = 0;
+            long start = System.nanoTime();
             while (true) {
-                Thread.sleep(10);
+                Thread.sleep(POLL_MILLIS);
                 mTime = Files.getLastModifiedTime(path);
                 if (prevMtime.compareTo(mTime) == 0) {
                     numSame++;
-                    if (numSame >= 5) {
+                    if (numSame >= POLLS_TO_QUIESCE) {
                         break;
                     }
                 }
                 prevMtime = mTime;
             }
+            long took = System.nanoTime() - start;
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }

@@ -51,6 +51,10 @@ public class TracingListener implements Poller.Listener{
         return log.get(log.size()-1).data;
     }
 
+    public long getLatestNanoTime() {
+        return log.get(log.size()-1).nanoClock;
+    }
+
     public static class TraceEntry {
         long systemClock;
         long nanoClock;

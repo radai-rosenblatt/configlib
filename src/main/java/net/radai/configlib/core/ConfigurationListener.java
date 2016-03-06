@@ -15,7 +15,7 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.api;
+package net.radai.configlib.core;
 
 /**
  * Created by Radai Rosenblatt

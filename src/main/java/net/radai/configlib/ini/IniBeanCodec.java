@@ -51,11 +51,14 @@ public class IniBeanCodec implements BeanCodec {
 
     @Override
     public <T> T parse(Class<T> beanClass, InputStream from) throws IOException {
-        Bean<T> bean = Beanz.create(beanClass);
+        if (from == null) {
+            return null;
+        }
         Ini ini;
         try (Reader reader = new InputStreamReader(from, charset)){
             ini = readIni(reader);
         }
+        Bean<T> bean = Beanz.create(beanClass);
         Set<String> sectionNames = ini.keySet();
         for (String sectionName : sectionNames) {
             List<Profile.Section> sectionInstances = ini.getAll(sectionName);

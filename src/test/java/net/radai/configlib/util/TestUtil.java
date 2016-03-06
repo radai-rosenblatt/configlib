@@ -15,25 +15,19 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core;
+package net.radai.configlib.util;
 
-import net.radai.configlib.core.spi.NopPostProcessor;
-import net.radai.configlib.fs.PathWatcher;
-import net.radai.configlib.ini.IniBeanCodec;
-
-import java.nio.file.Path;
+import net.radai.configlib.core.util.FSUtil;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class ConfigLib {
-
-    public static <T> ConfigurationService<T> create(Class<T> configClass, Path configFile) {
-        return new ConfigurationService<>(
-                configClass,
-                new PathWatcher(configFile),
-                new IniBeanCodec("UTF-8"),
-                new NopPostProcessor()
-        );
+public class TestUtil {
+    /**
+     * waits long enough to allow file system modifications to be picked up
+     * @throws InterruptedException
+     */
+    public static void waitForFsQuiesce() throws InterruptedException {
+        Thread.sleep(5 * FSUtil.MIN_DELAY_MILLIS);
     }
 }

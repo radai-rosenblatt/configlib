@@ -31,7 +31,7 @@ public class CloseableLock implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         this.lock.unlock();
     }
 }

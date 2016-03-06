@@ -15,11 +15,12 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core.api;
+package net.radai.configlib.core;
 
 import net.radai.configlib.core.spi.BeanCodec;
 import net.radai.configlib.core.spi.BeanPostProcessor;
 import net.radai.configlib.core.spi.Poller;
+import net.radai.configlib.core.util.Listeners;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,12 +33,12 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ConfigurationService<T> implements Poller.Listener {
     //configuration
     private final Class<T> confBeanClass;
-    private final boolean allowNullConf;
 
     //components
     private final Poller poller;
     private final BeanCodec codec;
     private final BeanPostProcessor postProcessor;
+    private final Listeners<ConfigurationListener<T>> listeners = new Listeners<>();
 
     //state
     private final AtomicReference<T> ref = new AtomicReference<>(null);
@@ -45,25 +46,27 @@ public class ConfigurationService<T> implements Poller.Listener {
 
     public ConfigurationService(
             Class<T> confBeanClass,
-            boolean allowNullConf,
             Poller poller,
             BeanCodec codec,
             BeanPostProcessor postProcessor
     ) {
         this.confBeanClass = confBeanClass;
-        this.allowNullConf = allowNullConf;
         this.poller = poller;
         this.codec = codec;
         this.postProcessor = postProcessor;
-        try (InputStream in = poller.fetch()) {
-            loadConf(in);
-        } catch (IOException e) {
-            throw new IllegalStateException();
-        }
+        //we only load the actual conf when we're started
+    }
+
+    public void register(ConfigurationListener<T> newListener) {
+        listeners.register(newListener);
+    }
+
+    public void unregister(ConfigurationListener<T> existingListener) {
+        listeners.unregister(existingListener);
     }
 
     public T getConfiguration() {
-        T latest = ref.get(); //grab ref 1st to avoid race with shutdown
+        T latest = ref.get(); //grab ref 1st to avoid race with stop()
         if (!on) {
             throw new IllegalStateException();
         }
@@ -74,15 +77,16 @@ public class ConfigurationService<T> implements Poller.Listener {
         if (on) {
             throw new IllegalStateException();
         }
-        T confBean;
+        boolean success;
         try (InputStream is = poller.fetch()){
-            confBean = codec.parse(confBeanClass, is);
-            postProcessor.validate(null, confBean);
-        } catch (IOException e) {
+            success = loadConf(is, false);
+        } catch (Exception e) {
             //TODO - handle properly
             throw new IllegalStateException(e);
         }
-        ref.set(confBean);
+        if (!success) {
+            throw new IllegalStateException("unable to load initial configuration");
+        }
         poller.register(this);
         poller.start();
         on = true;
@@ -100,28 +104,35 @@ public class ConfigurationService<T> implements Poller.Listener {
 
     @Override
     public void sourceChanged(InputStream newContents) throws IOException {
-        loadConf(newContents);
+        loadConf(newContents, true);
     }
 
-    private void loadConf(InputStream source) throws IOException {
+    /**
+     * handles loading a conf from an input stream
+     * @param source source of (potential) new configuration
+     * @param notifyListeners notify conf listeners (if conf passes validation)
+     * @return true if process resulted in new configuration being loaded
+     * @throws IOException
+     */
+    private boolean loadConf(InputStream source, boolean notifyListeners) throws IOException {
         T oldBean = ref.get();
-        T newBean = codec.parse(confBeanClass, source);
+        T newBean = source == null ? null : codec.parse(confBeanClass, source);
         BeanPostProcessor.Decision<T> decision = postProcessor.validate(oldBean, newBean);
         if (!decision.isUpdateConf()) {
-            return; //do nothing
+            return false; //do nothing
         }
         T processedBean = decision.getConfToUse();
-        if (processedBean == null && !allowNullConf) {
-            throw new IllegalStateException();
-        }
         if (decision.isPersistConf()) {
             try (OutputStream out = poller.store()) {
                 codec.serialize(processedBean, out);
             }
         }
         if (!ref.compareAndSet(oldBean, newBean)) {
-            throw new IllegalStateException(); //there should only be a single thread driving this. this shouldnt happen
+            throw new IllegalStateException(); //should never happen - poller is sequential and so is start().
         }
-        //TODO - call listeners with new conf
+        if (notifyListeners) {
+            listeners.forEach(listener -> listener.configurationChanged(oldBean, newBean));
+        }
+        return true;
     }
 }
