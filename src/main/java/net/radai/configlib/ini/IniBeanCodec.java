@@ -58,6 +58,7 @@ public class IniBeanCodec implements BeanCodec {
         try (Reader reader = new InputStreamReader(from, charset)){
             ini = readIni(reader);
         }
+        String globalSectionName = ini.getConfig().getGlobalSectionName();
         Bean<T> bean = Beanz.create(beanClass);
         Set<String> sectionNames = ini.keySet();
         for (String sectionName : sectionNames) {
@@ -65,8 +66,8 @@ public class IniBeanCodec implements BeanCodec {
             if (sectionInstances == null || sectionInstances.isEmpty()) {
                 throw new IllegalStateException();
             }
-            if (sectionName.equals("?")) {
-                //default section == top-level fields == properties of the top level class
+            if (sectionName.equals(globalSectionName)) {
+                //global section == top-level fields == properties of the top level class
                 if (sectionInstances.size() != 1) {
                     throw new IllegalStateException();
                 }
