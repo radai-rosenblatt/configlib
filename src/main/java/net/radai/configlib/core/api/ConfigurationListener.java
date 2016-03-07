@@ -15,11 +15,11 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core;
+package net.radai.configlib.core.api;
 
 /**
  * Created by Radai Rosenblatt
  */
 public interface ConfigurationListener<T> {
-    void configurationChanged(T oldConfiguration, T newConfiguration);
+    void configurationChanged(ConfigurationChangeEvent<T> changeEvent);
 }

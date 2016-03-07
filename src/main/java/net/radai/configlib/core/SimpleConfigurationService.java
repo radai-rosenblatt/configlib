@@ -17,6 +17,10 @@
 
 package net.radai.configlib.core;
 
+import net.radai.configlib.core.api.ConfigurationChangeEvent;
+import net.radai.configlib.core.api.ConfigurationListener;
+import net.radai.configlib.core.api.ConfigurationService;
+import net.radai.configlib.core.api.ConfigurationServiceLifecycle;
 import net.radai.configlib.core.spi.BeanCodec;
 import net.radai.configlib.core.spi.BeanPostProcessor;
 import net.radai.configlib.core.spi.Poller;
@@ -30,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Created by Radai Rosenblatt
  */
-public class ConfigurationService<T> implements Poller.Listener {
+public class SimpleConfigurationService<T> implements Poller.Listener, ConfigurationService<T>, ConfigurationServiceLifecycle, AutoCloseable {
     //configuration
     private final Class<T> confBeanClass;
 
@@ -44,7 +48,7 @@ public class ConfigurationService<T> implements Poller.Listener {
     private final AtomicReference<T> ref = new AtomicReference<>(null);
     private volatile boolean on = false;
 
-    public ConfigurationService(
+    public SimpleConfigurationService(
             Class<T> confBeanClass,
             Poller poller,
             BeanCodec codec,
@@ -57,14 +61,17 @@ public class ConfigurationService<T> implements Poller.Listener {
         //we only load the actual conf when we're started
     }
 
+    @Override
     public void register(ConfigurationListener<T> newListener) {
         listeners.register(newListener);
     }
 
+    @Override
     public void unregister(ConfigurationListener<T> existingListener) {
         listeners.unregister(existingListener);
     }
 
+    @Override
     public T getConfiguration() {
         T latest = ref.get(); //grab ref 1st to avoid race with stop()
         if (!on) {
@@ -73,6 +80,7 @@ public class ConfigurationService<T> implements Poller.Listener {
         return latest;
     }
 
+    @Override
     public synchronized void start() {
         if (on) {
             throw new IllegalStateException();
@@ -92,6 +100,7 @@ public class ConfigurationService<T> implements Poller.Listener {
         on = true;
     }
 
+    @Override
     public synchronized void stop() {
         if (!on) {
             throw new IllegalStateException();
@@ -100,6 +109,16 @@ public class ConfigurationService<T> implements Poller.Listener {
         poller.unregister(this);
         ref.set(null);
         poller.stop();
+    }
+
+    @Override
+    public boolean isStarted() {
+        return on;
+    }
+
+    @Override
+    public void close() {
+        stop();
     }
 
     @Override
@@ -131,7 +150,8 @@ public class ConfigurationService<T> implements Poller.Listener {
             throw new IllegalStateException(); //should never happen - poller is sequential and so is start().
         }
         if (notifyListeners) {
-            listeners.forEach(listener -> listener.configurationChanged(oldBean, newBean));
+            ConfigurationChangeEvent<T> event = new ConfigurationChangeEvent<>(oldBean, newBean);
+            listeners.forEach(listener -> listener.configurationChanged(event));
         }
         return true;
     }

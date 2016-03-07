@@ -20,6 +20,8 @@ package net.radai.configlib.core;
 import com.google.common.io.ByteStreams;
 import net.radai.configlib.beanvalidation.BeanValidationPostProcessor;
 import net.radai.configlib.cats.Cats;
+import net.radai.configlib.core.api.ConfigurationChangeEvent;
+import net.radai.configlib.core.api.ConfigurationListener;
 import net.radai.configlib.fs.PathWatcher;
 import net.radai.configlib.ini.IniBeanCodec;
 import net.radai.configlib.util.TestUtil;
@@ -37,7 +39,7 @@ import java.util.Arrays;
 /**
  * Created by Radai Rosenblatt
  */
-public class ConfigurationServiceTest {
+public class SimpleConfigurationServiceTest {
 
     @Test(expected = IllegalStateException.class)
     public void testCantStartWithNoConf() throws Exception {
@@ -46,7 +48,7 @@ public class ConfigurationServiceTest {
         //start with no conf file
         Assert.assertTrue(Files.exists(dir));
         Assert.assertTrue(Files.notExists(targetFile));
-        ConfigurationService<Cats> service = new ConfigurationService<>(
+        SimpleConfigurationService<Cats> service = new SimpleConfigurationService<>(
                 Cats.class,
                 new PathWatcher(targetFile),
                 new IniBeanCodec(),
@@ -65,7 +67,7 @@ public class ConfigurationServiceTest {
         }
         Assert.assertTrue(Files.exists(targetFile));
 
-        ConfigurationService<Cats> service = new ConfigurationService<>(
+        SimpleConfigurationService<Cats> service = new SimpleConfigurationService<>(
                 Cats.class,
                 new PathWatcher(targetFile),
                 new IniBeanCodec(),
@@ -89,7 +91,7 @@ public class ConfigurationServiceTest {
         try (InputStream is = Files.newInputStream(targetFile, StandardOpenOption.READ)) {
             originalConf = ByteStreams.toByteArray(is);
         }
-        ConfigurationService<Cats> service = new ConfigurationService<>(
+        SimpleConfigurationService<Cats> service = new SimpleConfigurationService<>(
                 Cats.class,
                 new PathWatcher(targetFile),
                 new IniBeanCodec(),
@@ -128,7 +130,7 @@ public class ConfigurationServiceTest {
              OutputStream os = Files.newOutputStream(targetFile, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW)){
             ByteStreams.copy(is, os);
         }
-        ConfigurationService<Cats> service = new ConfigurationService<>(
+        SimpleConfigurationService<Cats> service = new SimpleConfigurationService<>(
                 Cats.class,
                 new PathWatcher(targetFile),
                 new IniBeanCodec(),
@@ -145,9 +147,8 @@ public class ConfigurationServiceTest {
             ByteStreams.copy(is, os);
         }
         TestUtil.waitForFsQuiesce();
-//        Thread.sleep(10000L);
         Cats current = service.getConfiguration();
         Assert.assertTrue(current != initial);
-        Mockito.verify(listener).configurationChanged(Mockito.eq(initial), Mockito.eq(current)); //listener was notified
+        Mockito.verify(listener).configurationChanged(Mockito.eq(new ConfigurationChangeEvent<>(initial, current))); //listener was notified
     }
 }

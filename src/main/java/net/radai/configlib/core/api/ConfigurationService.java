@@ -15,25 +15,13 @@
  * along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.configlib.core;
-
-import net.radai.configlib.core.spi.NopPostProcessor;
-import net.radai.configlib.fs.PathWatcher;
-import net.radai.configlib.ini.IniBeanCodec;
-
-import java.io.File;
+package net.radai.configlib.core.api;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class ConfigLib {
-
-    public static <T> SimpleConfigurationService<T> create(Class<T> configClass, File configFile) {
-        return new SimpleConfigurationService<>(
-                configClass,
-                new PathWatcher(configFile.toPath()),
-                new IniBeanCodec("UTF-8"),
-                new NopPostProcessor()
-        );
-    }
+public interface ConfigurationService<T> {
+    void register(ConfigurationListener<T> newListener);
+    void unregister(ConfigurationListener<T> existingListener);
+    T getConfiguration();
 }
