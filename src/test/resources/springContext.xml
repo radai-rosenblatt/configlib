@@ -31,4 +31,8 @@
         </constructor-arg>
     </bean>
 
+    <bean id="confConsumer" class="net.radai.configlib.spring.ConfigurationConsumerBean">
+        <constructor-arg name="confService" ref="&amp;confService"/>
+        <property name="conf" ref="confService"/>
+    </bean>
 </beans>

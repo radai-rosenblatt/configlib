@@ -21,6 +21,7 @@ import com.google.common.io.ByteStreams;
 import net.radai.configlib.cats.Cats;
 import net.radai.configlib.core.SimpleConfigurationService;
 import net.radai.configlib.core.api.ConfigurationService;
+import net.radai.configlib.util.TestUtil;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -36,7 +37,8 @@ import java.nio.file.StandardOpenOption;
 /**
  * Created by Radai Rosenblatt
  */
-public class SpringAwareConfigurationServiceTest {
+public class SpringXmlConfTest {
+
     @Test
     public void testSpringIntegration() throws Exception {
         Path dir = Files.createTempDirectory("test");
@@ -50,10 +52,25 @@ public class SpringAwareConfigurationServiceTest {
         ConfigurableApplicationContext context = new ClassPathXmlApplicationContext("springContext.xml");
         //noinspection unchecked
         SpringAwareConfigurationService<Cats> confService = (SpringAwareConfigurationService<Cats>) context.getBean(ConfigurationService.class);
+        ConfigurationConsumerBean consumer = context.getBean(ConfigurationConsumerBean.class);
         //noinspection unchecked
         SimpleConfigurationService<Cats> delegate = (SimpleConfigurationService<Cats>) ReflectionTestUtils.getField(confService, "delegate");
         Assert.assertNotNull(confService.getConfiguration());
         Assert.assertTrue(delegate.isStarted());
+        Assert.assertTrue(consumer.getConf() == confService.getConfiguration());
+        Assert.assertTrue(consumer.getCats().isEmpty());
+
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("cat.ini");
+             OutputStream os = Files.newOutputStream(targetFile, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)){
+            ByteStreams.copy(is, os);
+        }
+        TestUtil.waitForFsQuiesce();
+
+        //verify event was received
+        Assert.assertEquals(1, consumer.getCats().size());
+        Assert.assertTrue(consumer.getConf() != consumer.getCats().get(0));
+        Assert.assertTrue(confService.getConfiguration() == consumer.getCats().get(0));
+
         context.close();
         Assert.assertFalse(delegate.isStarted());
     }

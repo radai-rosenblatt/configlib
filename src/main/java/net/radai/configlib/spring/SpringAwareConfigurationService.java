@@ -17,11 +17,16 @@
 
 package net.radai.configlib.spring;
 
+import net.radai.configlib.core.api.ConfigurationChangeEvent;
 import net.radai.configlib.core.api.ConfigurationListener;
 import net.radai.configlib.core.api.ConfigurationService;
 import net.radai.configlib.core.api.ConfigurationServiceLifecycle;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.context.PayloadApplicationEvent;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -30,8 +35,11 @@ import javax.annotation.PreDestroy;
  * Created by Radai Rosenblatt
  * using spring's startup/shutdown interfaces for broader compatibility
  */
-public class SpringAwareConfigurationService<T> implements ConfigurationService<T>, InitializingBean, DisposableBean {
+public class SpringAwareConfigurationService<T> implements
+        ConfigurationService<T>, InitializingBean, DisposableBean, FactoryBean<T>,
+        ApplicationEventPublisherAware, ConfigurationListener<T> {
     private final ConfigurationService<T> delegate;
+    private ApplicationEventPublisher springPublisher;
 
     public SpringAwareConfigurationService(ConfigurationService<T> delegate) {
         this.delegate = delegate;
@@ -58,13 +66,40 @@ public class SpringAwareConfigurationService<T> implements ConfigurationService<
         if (delegate instanceof ConfigurationServiceLifecycle) {
             ((ConfigurationServiceLifecycle)delegate).start();
         }
+        delegate.register(this);
     }
 
     @Override
     @PreDestroy
     public void destroy() throws Exception {
+        delegate.unregister(this);
         if (delegate instanceof ConfigurationServiceLifecycle) {
             ((ConfigurationServiceLifecycle)delegate).stop();
         }
+    }
+
+    @Override
+    public T getObject() throws Exception {
+        return delegate.getConfiguration();
+    }
+
+    @Override
+    public Class<?> getObjectType() {
+        return null;
+    }
+
+    @Override
+    public boolean isSingleton() {
+        return false;
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        springPublisher = applicationEventPublisher;
+    }
+
+    @Override
+    public void configurationChanged(ConfigurationChangeEvent<T> changeEvent) {
+        springPublisher.publishEvent(new PayloadApplicationEvent<>(this, changeEvent));
     }
 }
