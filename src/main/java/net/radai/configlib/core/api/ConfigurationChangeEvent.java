@@ -17,42 +17,11 @@
 
 package net.radai.configlib.core.api;
 
-import java.util.Objects;
-
 /**
  * Created by Radai Rosenblatt
  */
-public class ConfigurationChangeEvent<T> {
-    private final T oldConf;
-    private final T newConf;
-
-    public ConfigurationChangeEvent(T oldConf, T newConf) {
-        this.oldConf = oldConf;
-        this.newConf = newConf;
-    }
-
-    public T getOldConf() {
-        return oldConf;
-    }
-
-    public T getNewConf() {
-        return newConf;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ConfigurationChangeEvent<?> that = (ConfigurationChangeEvent<?>) o;
-        return Objects.equals(oldConf, that.oldConf) && Objects.equals(newConf, that.newConf);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(oldConf, newConf);
-    }
+public interface ConfigurationChangeEvent<T> {
+    T getOldConf();
+    T getNewConf();
+    Class<T> getConfigurationType();
 }

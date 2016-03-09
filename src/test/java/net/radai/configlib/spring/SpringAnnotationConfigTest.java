@@ -19,14 +19,12 @@ package net.radai.configlib.spring;
 
 import com.google.common.io.ByteStreams;
 import net.radai.configlib.cats.Cats;
-import net.radai.configlib.core.SimpleConfigurationService;
 import net.radai.configlib.core.api.ConfigurationService;
 import net.radai.configlib.util.TestUtil;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,10 +35,9 @@ import java.nio.file.StandardOpenOption;
 /**
  * Created by Radai Rosenblatt
  */
-public class SpringXmlConfTest {
-
+public class SpringAnnotationConfigTest {
     @Test
-    public void testSpringXmlIntegration() throws Exception {
+    public void testSpringAnnotationIntegration() throws Exception {
         Path dir = Files.createTempDirectory("test");
         Path targetFile = dir.resolve("confFile");
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("cats.ini");
@@ -49,16 +46,13 @@ public class SpringXmlConfTest {
         }
         String absolutePath = targetFile.toFile().getCanonicalPath();
         System.setProperty("confFile", absolutePath);
-        ConfigurableApplicationContext context = new ClassPathXmlApplicationContext("xmlSpringContext.xml");
+        ConfigurableApplicationContext context = new ClassPathXmlApplicationContext("annotationSpringContext.xml");
         //noinspection unchecked
         SpringAwareConfigurationService<Cats> confService = (SpringAwareConfigurationService<Cats>) context.getBean(ConfigurationService.class);
-        TraditionalConfigurationConsumerBean consumer = context.getBean(TraditionalConfigurationConsumerBean.class);
+        Jsr330AnnotatedConfigurationConsumerBean consumer = context.getBean(Jsr330AnnotatedConfigurationConsumerBean.class);
         //noinspection unchecked
-        SimpleConfigurationService<Cats> delegate = (SimpleConfigurationService<Cats>) ReflectionTestUtils.getField(confService, "delegate");
-        Assert.assertNotNull(confService.getConfiguration());
-        Assert.assertTrue(delegate.isStarted());
-        Assert.assertTrue(consumer.getConf() == confService.getConfiguration());
-        Assert.assertTrue(consumer.getConfService() == confService);
+        Assert.assertNotNull(consumer.getConfService());
+        Assert.assertNotNull(consumer.getInitialConf());
         Assert.assertTrue(consumer.getCats().isEmpty());
 
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("cat.ini");
@@ -69,10 +63,9 @@ public class SpringXmlConfTest {
 
         //verify event was received
         Assert.assertEquals(1, consumer.getCats().size());
-        Assert.assertTrue(consumer.getConf() != consumer.getCats().get(0));
+        Assert.assertTrue(consumer.getInitialConf() != consumer.getCats().get(0));
         Assert.assertTrue(confService.getConfiguration() == consumer.getCats().get(0));
 
         context.close();
-        Assert.assertFalse(delegate.isStarted());
     }
 }

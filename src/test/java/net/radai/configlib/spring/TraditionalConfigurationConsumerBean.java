@@ -18,11 +18,8 @@
 package net.radai.configlib.spring;
 
 import net.radai.configlib.cats.Cats;
-import net.radai.configlib.core.api.ConfigurationChangeEvent;
 import net.radai.configlib.core.api.ConfigurationService;
 import org.springframework.context.ApplicationListener;
-import org.springframework.context.PayloadApplicationEvent;
-import org.springframework.context.event.EventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,12 +27,12 @@ import java.util.List;
 /**
  * Created by Radai Rosenblatt
  */
-public class ConfigurationConsumerBean implements ApplicationListener<PayloadApplicationEvent<ConfigurationChangeEvent<?>>> {
+public class TraditionalConfigurationConsumerBean implements ApplicationListener<SpringConfigurationChangedEvent<Cats>> {
     private Cats conf;
     private ConfigurationService<Cats> confService;
     private List<Cats> cats = new ArrayList<>();
 
-    public ConfigurationConsumerBean(ConfigurationService<Cats> confService) {
+    public TraditionalConfigurationConsumerBean(ConfigurationService<Cats> confService) {
         this.confService = confService;
     }
 
@@ -47,17 +44,16 @@ public class ConfigurationConsumerBean implements ApplicationListener<PayloadApp
         this.conf = conf;
     }
 
+    public ConfigurationService<Cats> getConfService() {
+        return confService;
+    }
+
     public List<Cats> getCats() {
         return cats;
     }
 
-    @EventListener
-    public void configChanged(ConfigurationChangeEvent<Cats> event) {
-        int g = 6;
-    }
-
     @Override
-    public void onApplicationEvent(PayloadApplicationEvent<ConfigurationChangeEvent<?>> event) {
-        cats.add((Cats) event.getPayload().getNewConf());
+    public void onApplicationEvent(SpringConfigurationChangedEvent<Cats> event) {
+        cats.add(event.getNewConf());
     }
 }

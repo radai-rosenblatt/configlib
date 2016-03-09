@@ -20,7 +20,6 @@ package net.radai.configlib.core;
 import com.google.common.io.ByteStreams;
 import net.radai.configlib.beanvalidation.BeanValidationPostProcessor;
 import net.radai.configlib.cats.Cats;
-import net.radai.configlib.core.api.ConfigurationChangeEvent;
 import net.radai.configlib.core.api.ConfigurationListener;
 import net.radai.configlib.fs.PathWatcher;
 import net.radai.configlib.ini.IniBeanCodec;
@@ -149,6 +148,6 @@ public class SimpleConfigurationServiceTest {
         TestUtil.waitForFsQuiesce();
         Cats current = service.getConfiguration();
         Assert.assertTrue(current != initial);
-        Mockito.verify(listener).configurationChanged(Mockito.eq(new ConfigurationChangeEvent<>(initial, current))); //listener was notified
+        Mockito.verify(listener).configurationChanged(Mockito.eq(new SimpleConfigurationChangeEvent<>(Cats.class, initial, current))); //listener was notified
     }
 }

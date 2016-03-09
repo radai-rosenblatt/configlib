@@ -26,7 +26,6 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.context.PayloadApplicationEvent;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -61,6 +60,11 @@ public class SpringAwareConfigurationService<T> implements
     }
 
     @Override
+    public Class<T> getConfigurationType() {
+        return delegate.getConfigurationType();
+    }
+
+    @Override
     @PostConstruct
     public void afterPropertiesSet() throws Exception {
         if (delegate instanceof ConfigurationServiceLifecycle) {
@@ -85,7 +89,7 @@ public class SpringAwareConfigurationService<T> implements
 
     @Override
     public Class<?> getObjectType() {
-        return null;
+        return getConfigurationType();
     }
 
     @Override
@@ -100,6 +104,6 @@ public class SpringAwareConfigurationService<T> implements
 
     @Override
     public void configurationChanged(ConfigurationChangeEvent<T> changeEvent) {
-        springPublisher.publishEvent(new PayloadApplicationEvent<>(this, changeEvent));
+        springPublisher.publishEvent(new SpringConfigurationChangedEvent<>(this, changeEvent));
     }
 }

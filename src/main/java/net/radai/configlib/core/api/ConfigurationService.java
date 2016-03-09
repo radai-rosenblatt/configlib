@@ -24,4 +24,5 @@ public interface ConfigurationService<T> {
     void register(ConfigurationListener<T> newListener);
     void unregister(ConfigurationListener<T> existingListener);
     T getConfiguration();
+    Class<T> getConfigurationType();
 }

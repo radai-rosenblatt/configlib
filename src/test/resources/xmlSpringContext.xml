@@ -25,13 +25,12 @@
         <constructor-arg>
             <bean class="net.radai.configlib.core.ConfigLib" factory-method="create">
                 <constructor-arg type="java.lang.Class" value="net.radai.configlib.cats.Cats"/>
-                <!--<constructor-arg type="java.io.File" value="file:/bob"/>-->
                 <constructor-arg type="java.io.File" value="file:#{systemProperties['confFile']}"/>
             </bean>
         </constructor-arg>
     </bean>
 
-    <bean id="confConsumer" class="net.radai.configlib.spring.ConfigurationConsumerBean">
+    <bean id="confConsumer" class="net.radai.configlib.spring.TraditionalConfigurationConsumerBean">
         <constructor-arg name="confService" ref="&amp;confService"/>
         <property name="conf" ref="confService"/>
     </bean>

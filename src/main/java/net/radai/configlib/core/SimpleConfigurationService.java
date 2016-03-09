@@ -17,10 +17,7 @@
 
 package net.radai.configlib.core;
 
-import net.radai.configlib.core.api.ConfigurationChangeEvent;
-import net.radai.configlib.core.api.ConfigurationListener;
-import net.radai.configlib.core.api.ConfigurationService;
-import net.radai.configlib.core.api.ConfigurationServiceLifecycle;
+import net.radai.configlib.core.api.*;
 import net.radai.configlib.core.spi.BeanCodec;
 import net.radai.configlib.core.spi.BeanPostProcessor;
 import net.radai.configlib.core.spi.Poller;
@@ -78,6 +75,11 @@ public class SimpleConfigurationService<T> implements Poller.Listener, Configura
             throw new IllegalStateException();
         }
         return latest;
+    }
+
+    @Override
+    public Class<T> getConfigurationType() {
+        return confBeanClass;
     }
 
     @Override
@@ -150,7 +152,7 @@ public class SimpleConfigurationService<T> implements Poller.Listener, Configura
             throw new IllegalStateException(); //should never happen - poller is sequential and so is start().
         }
         if (notifyListeners) {
-            ConfigurationChangeEvent<T> event = new ConfigurationChangeEvent<>(oldBean, newBean);
+            ConfigurationChangeEvent<T> event = new SimpleConfigurationChangeEvent<>(getConfigurationType(), oldBean, newBean);
             listeners.forEach(listener -> listener.configurationChanged(event));
         }
         return true;
