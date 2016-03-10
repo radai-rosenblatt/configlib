@@ -1,18 +1,18 @@
 <!--
-  ~ This file is part of ConfigLib.
+  ~ This file is part of Confusion.
   ~
-  ~ ConfigLib is free software: you can redistribute it and/or modify
+  ~ Confusion is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
   ~ the Free Software Foundation, either version 3 of the License, or
   ~ (at your option) any later version.
   ~
-  ~ ConfigLib is distributed in the hope that it will be useful,
+  ~ Confusion is distributed in the hope that it will be useful,
   ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
   ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
   ~ GNU General Public License for more details.
   ~
   ~ You should have received a copy of the GNU General Public License
-  ~ along with ConfigLib.  If not, see <http://www.gnu.org/licenses/>.
+  ~ along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
   -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -20,10 +20,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.github.radai-rosenblatt</groupId>
-    <artifactId>configlib</artifactId>
+    <artifactId>confusion</artifactId>
     <version>0.1-SNAPSHOT</version>
 
-    <name>configlib</name>
+    <name>confusion</name>
 
     <prerequisites>
         <maven>3.0</maven>
@@ -99,7 +99,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>net.radai.beanz</groupId>
+            <groupId>com.github.radai-rosenblatt</groupId>
             <artifactId>beanz</artifactId>
             <version>0.1-SNAPSHOT</version>
         </dependency>
@@ -166,4 +166,17 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 </project>
