@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ This file is part of Confusion.
+  ~
+  ~ Confusion is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ Confusion is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-4.2.xsd">
+
+    <bean id="confService" class="net.radai.confusion.spring.SpringAwareConfigurationService">
+        <constructor-arg>
+            <bean class="net.radai.confusion.core.SimpleConfigurationService">
+                <constructor-arg type="java.lang.Class" value="net.radai.confusion.cats.Cats"/>
+                <constructor-arg type="net.radai.confusion.core.spi.Poller">
+                    <bean class="net.radai.confusion.core.fs.PathWatcher">
+                        <constructor-arg type="java.io.File" value="file:#{systemProperties['confFile']}"/>
+                    </bean>
+                </constructor-arg>
+                <constructor-arg type="net.radai.confusion.core.spi.BeanCodec">
+                    <bean class="net.radai.confusion.ini.IniBeanCodec" />
+                </constructor-arg>
+                <constructor-arg type="net.radai.confusion.core.spi.BeanPostProcessor">
+                    <bean class="net.radai.confusion.beanvalidation.BeanValidationPostProcessor"/>
+                </constructor-arg>
+            </bean>
+        </constructor-arg>
+    </bean>
+
+    <bean id="confConsumer" class="net.radai.confusion.spring.TraditionalConfigurationConsumerBean">
+        <constructor-arg name="confService" ref="&amp;confService"/>
+        <property name="conf" ref="confService"/>
+    </bean>
+</beans>
