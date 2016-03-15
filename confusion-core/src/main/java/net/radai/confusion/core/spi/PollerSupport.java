@@ -43,6 +43,10 @@ public abstract class PollerSupport implements Poller {
 
     protected void fire(InputStream input) throws IOException {
         byte[] data = readFully(input); //read everything.
+        fire(data);
+    }
+
+    protected void fire(byte[] data) {
         listeners.forEach(listener -> {
             try {
                 listener.sourceChanged(new ByteArrayInputStream(data));
