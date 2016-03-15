@@ -34,6 +34,7 @@
         <module>confusion-ini</module>
         <module>confusion-beanvalidation</module>
         <module>confusion-spring</module>
+        <!--<module>confusion-dagger2</module>-->
     </modules>
 
     <prerequisites>
