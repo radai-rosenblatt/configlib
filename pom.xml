@@ -31,6 +31,7 @@
         <module>confusion-bom</module>
         <module>confusion-core</module>
         <module>confusion-consul</module>
+        <module>confusion-etcd</module>
         <module>confusion-ini</module>
         <module>confusion-beanvalidation</module>
         <module>confusion-spring</module>
@@ -204,6 +205,11 @@
                 <groupId>com.ecwid.consul</groupId>
                 <artifactId>consul-api</artifactId>
                 <version>1.1.9</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mousio</groupId>
+                <artifactId>etcd4j</artifactId>
+                <version>2.10.0</version>
             </dependency>
 
             <!-- test libraries -->
