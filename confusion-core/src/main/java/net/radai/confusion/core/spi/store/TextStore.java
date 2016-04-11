@@ -15,31 +15,24 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core.serializable;
+package net.radai.confusion.core.spi.store;
 
-import net.radai.confusion.core.spi.BeanCodec;
+import net.radai.confusion.core.spi.PayloadType;
 
-import java.io.*;
+import java.io.IOException;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class SerializableBeanCodec implements BeanCodec {
+public interface TextStore extends Store {
 
     @Override
-    public <T> T parse(Class<T> beanClass, InputStream from) throws IOException {
-        try (ObjectInputStream is = new ObjectInputStream(from)) {
-            //noinspection unchecked
-            return (T) is.readObject();
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException(e);
-        }
+    default PayloadType getPayloadType() {
+        return PayloadType.TEXT;
     }
 
-    @Override
-    public <T> void serialize(T beanInstance, OutputStream to) throws IOException {
-        try (ObjectOutputStream os = new ObjectOutputStream(to)) {
-            os.writeObject(beanInstance);
-        }
-    }
+    String read() throws IOException;
+    void write(String payload) throws IOException;
+    void register(TextStoreListener newListener);
+    void unregister(TextStoreListener existingListener);
 }

@@ -15,22 +15,20 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core;
+package net.radai.confusion.core.spi.codec;
 
-import java.io.File;
+import net.radai.confusion.core.spi.PayloadType;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class Confusion {
+public interface TextCodec extends Codec {
 
-    public static <T> SimpleConfigurationService<T> create(Class<T> configClass, File configFile) {
-        throw new UnsupportedOperationException("TBD");
-//        return new SimpleConfigurationService<>(
-//                configClass,
-//                new PathStore(configFile.toPath()),
-//                new IniBeanCodec("UTF-8"),
-//                new SimplePostProcessor()
-//        );
+    @Override
+    default PayloadType getPayloadType() {
+        return PayloadType.TEXT;
     }
+
+    <T> T parse(Class<T> beanClass, String from);
+    <T> String serialize(T beanInstance);
 }

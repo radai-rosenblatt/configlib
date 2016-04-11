@@ -15,13 +15,29 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core.api;
+package net.radai.confusion.core.spi.codec;
+
+import net.radai.confusion.core.spi.PayloadType;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Created by Radai Rosenblatt
  */
-public interface ConfigurationServiceLifecycle {
-    void start();
-    void stop();
-    boolean isStarted();
+public abstract class AbstractTextCodecTest extends AbstractCodecTest {
+
+    @Override
+    protected abstract TextCodec buildCodec();
+
+    @Test
+    public void testTypeGetterValue() {
+        Assert.assertEquals(PayloadType.TEXT, buildCodec().getPayloadType());
+    }
+
+    @Test
+    public void testNullString() throws Exception {
+        TextCodec codec = buildCodec();
+        Object parsed = codec.parse(getTestClass(), null);
+        Assert.assertNull("null input should result in null object", parsed);
+    }
 }

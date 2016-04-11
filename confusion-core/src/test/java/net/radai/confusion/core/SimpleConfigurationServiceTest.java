@@ -19,9 +19,8 @@ package net.radai.confusion.core;
 
 import net.radai.confusion.core.api.ConfigurationChangeEvent;
 import net.radai.confusion.core.api.ConfigurationListener;
-import net.radai.confusion.core.spi.BeanCodec;
 import net.radai.confusion.core.spi.BeanPostProcessor;
-import net.radai.confusion.core.spi.Poller;
+import net.radai.confusion.core.spi.source.Source;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,8 +30,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
 
-import java.io.InputStream;
-
 /**
  * Created by Radai Rosenblatt
  */
@@ -40,9 +37,7 @@ import java.io.InputStream;
 public class SimpleConfigurationServiceTest {
 
     @Mock
-    private Poller poller;
-    @Mock
-    private BeanCodec codec;
+    private Source<ConfClass> source;
     @Mock
     private BeanPostProcessor postProcessor;
     @Mock
@@ -52,29 +47,26 @@ public class SimpleConfigurationServiceTest {
 
     @Before
     public void setup() {
-        confService = new SimpleConfigurationService<>(ConfClass.class, poller, codec, postProcessor);
+        confService = new SimpleConfigurationService<>(ConfClass.class, source, postProcessor);
+        Mockito.verify(source).register(Mockito.eq(confService)); //happens @constructor time
         confService.register(listener);
     }
 
     @Test(expected = IllegalStateException.class)
     public void testCantStartWithNoConf() throws Exception {
-        Mockito.when(poller.fetch()).thenReturn(null);
+        Mockito.when(source.read()).thenReturn(null);
         Mockito.when(postProcessor.validate(Mockito.any(), Mockito.isNull())).thenReturn(new BeanPostProcessor.Decision<>(false, null, false));
         confService.start();
     }
 
     @Test
     public void testNormalBoot() throws Exception {
-        InputStream is1 = Mockito.mock(InputStream.class);
         ConfClass c1 = new ConfClass();
-        Mockito.when(poller.fetch()).thenReturn(is1);
-        Mockito.when(codec.parse(Mockito.eq(ConfClass.class), Mockito.eq(is1))).thenReturn(c1);
+        Mockito.when(source.read()).thenReturn(c1);
         Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new BeanPostProcessor.Decision<>(true, c1, false));
+
         confService.start();
-
-        Mockito.verify(poller).register(Mockito.eq(confService));
-        Mockito.verify(poller).start();
-
+        Mockito.verify(source).start();
         ConfClass initial = confService.getConfiguration();
         Assert.assertTrue(initial == c1);
         Mockito.verifyNoMoreInteractions(listener); //listeners not called on boot
@@ -83,22 +75,18 @@ public class SimpleConfigurationServiceTest {
     @Test
     public void testBadConfIgnored() throws Exception {
         //conf 1 is valid
-        InputStream is1 = Mockito.mock(InputStream.class);
         ConfClass c1 = new ConfClass();
-        Mockito.when(codec.parse(Mockito.eq(ConfClass.class), Mockito.eq(is1))).thenReturn(c1);
         Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new BeanPostProcessor.Decision<>(true, c1, false));
         //conf 2 is invalid
-        InputStream is2 = Mockito.mock(InputStream.class);
         ConfClass c2 = new ConfClass();
-        Mockito.when(codec.parse(Mockito.eq(ConfClass.class), Mockito.eq(is2))).thenReturn(c2);
         Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c2))).thenReturn(new BeanPostProcessor.Decision<>(false, null, false));
         //current state is 1
-        Mockito.when(poller.fetch()).thenReturn(is1);
+        Mockito.when(source.read()).thenReturn(c1);
 
         confService.start();
         Assert.assertTrue(confService.getConfiguration() == c1);
 
-        confService.sourceChanged(is2);
+        confService.sourceChanged(c2);
         Assert.assertTrue(confService.getConfiguration() == c1); //still 1
         Mockito.verifyNoMoreInteractions(listener); //listeners not called on bad conf
     }
@@ -106,23 +94,18 @@ public class SimpleConfigurationServiceTest {
     @Test
     public void testGoodConfPickedUp() throws Exception {
         //conf 1 is valid
-        InputStream is1 = Mockito.mock(InputStream.class);
         ConfClass c1 = new ConfClass();
-        Mockito.when(codec.parse(Mockito.eq(ConfClass.class), Mockito.eq(is1))).thenReturn(c1);
         Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new BeanPostProcessor.Decision<>(true, c1, false));
         //conf 2 also valid
-        InputStream is2 = Mockito.mock(InputStream.class);
         ConfClass c2 = new ConfClass();
-        Mockito.when(codec.parse(Mockito.eq(ConfClass.class), Mockito.eq(is2))).thenReturn(c2);
         Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c2))).thenReturn(new BeanPostProcessor.Decision<>(true, c2, false));
         //current state is 1
-        Mockito.when(poller.fetch()).thenReturn(is1);
+        Mockito.when(source.read()).thenReturn(c1);
 
         confService.start();
         Assert.assertTrue(confService.getConfiguration() == c1);
 
-
-        confService.sourceChanged(is2);
+        confService.sourceChanged(c2);
         Assert.assertTrue(confService.getConfiguration() == c2); //picked up
         ArgumentCaptor<ConfigurationChangeEvent<ConfClass>> capture = ArgumentCaptor.forClass(ConfigurationChangeEvent.class);
         Mockito.verify(listener).configurationChanged(capture.capture());

@@ -15,24 +15,24 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core.spi;
+package net.radai.confusion.core.spi.store;
+
+import net.radai.confusion.core.spi.PayloadType;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * Created by Radai Rosenblatt
  */
-public interface Poller {
-    void start();
-    void stop();
-    void register(Listener newListener);
-    void unregister(Listener existingListener);
-    InputStream fetch() throws IOException;
-    OutputStream store() throws IOException;
+public interface BinaryStore extends Store {
 
-    interface Listener {
-        void sourceChanged(InputStream newContents) throws IOException;
+    @Override
+    default PayloadType getPayloadType() {
+        return PayloadType.BINARY;
     }
+
+    byte[] read() throws IOException;
+    void write(byte[] payload) throws IOException;
+    void register(BinaryStoreListener newListener);
+    void unregister(BinaryStoreListener existingListener);
 }

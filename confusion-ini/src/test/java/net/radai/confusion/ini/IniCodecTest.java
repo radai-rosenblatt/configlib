@@ -18,9 +18,10 @@
 package net.radai.confusion.ini;
 
 import com.google.common.io.ByteStreams;
+import com.google.common.io.CharStreams;
 import net.radai.confusion.cats.Cat;
 import net.radai.confusion.cats.Cats;
-import net.radai.confusion.spi.AbstractBeanCodecTest;
+import net.radai.confusion.core.spi.codec.AbstractTextCodecTest;
 import org.ini4j.Ini;
 import org.junit.Assert;
 import org.junit.Test;
@@ -32,22 +33,27 @@ import java.util.Collections;
 /**
  * Created by Radai Rosenblatt
  */
-public class IniBeanCodecTest extends AbstractBeanCodecTest {
+public class IniCodecTest extends AbstractTextCodecTest {
 
     @Override
-    protected IniBeanCodec buildCodec() {
-        return new IniBeanCodec("UTF-8");
+    protected IniCodec buildCodec() {
+        return new IniCodec();
+    }
+
+    @Override
+    protected Class getTestClass() {
+        return Cats.class;
     }
 
     @Test
     public void testParsingCats() throws Exception {
-        IniBeanCodec codec = buildCodec();
+        IniCodec codec = buildCodec();
         Cats cats;
         byte[] contents;
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("cats.ini")) {
             contents = ByteStreams.toByteArray(is);
         }
-        cats = codec.parse(Cats.class, new ByteArrayInputStream(contents));
+        cats = codec.parse(Cats.class, new String(contents));
         Assert.assertNotNull(cats);
         Assert.assertEquals("bob", cats.getCreator());
         Assert.assertEquals(Arrays.asList("funny cats", "and stuff"), cats.getComments());
@@ -57,11 +63,7 @@ public class IniBeanCodecTest extends AbstractBeanCodecTest {
                 new Cat("Snowball", "Kitler", null)
                 ), cats.getCats());
 
-        String serialized;
-        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
-            codec.serialize(cats, os);
-            serialized = new String(os.toByteArray(), codec.getCharset());
-        }
+        String serialized = codec.serialize(cats);
         Ini original = IniUtil.read(new InputStreamReader(new ByteArrayInputStream(contents), "UTF-8"));
         Ini produced = IniUtil.read(new StringReader(serialized));
         Assert.assertTrue(IniUtil.equals(original, produced, false));
@@ -69,11 +71,13 @@ public class IniBeanCodecTest extends AbstractBeanCodecTest {
 
     @Test
     public void testParsingCat() throws Exception {
-        IniBeanCodec codec = buildCodec();
+        IniCodec codec = buildCodec();
         Cats cats;
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("cat.ini")) {
-            cats = codec.parse(Cats.class, is);
+            String serialized = CharStreams.toString(new InputStreamReader(is, "UTF-8"));
+            cats = codec.parse(Cats.class, serialized);
         }
+
         Assert.assertNotNull(cats);
         Assert.assertEquals("bob", cats.getCreator());
         Assert.assertEquals(Collections.singletonList("just a single cat"), cats.getComments());

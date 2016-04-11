@@ -15,23 +15,13 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.spi;
+package net.radai.confusion.core.spi.codec;
 
-import net.radai.confusion.cats.Cats;
-import net.radai.confusion.core.spi.BeanCodec;
-import org.junit.Assert;
-import org.junit.Test;
+import net.radai.confusion.core.spi.PayloadType;
 
 /**
  * Created by Radai Rosenblatt
  */
-public abstract class AbstractBeanCodecTest {
-    protected abstract BeanCodec buildCodec();
-
-    @Test
-    public void testNullInputStream() throws Exception {
-        BeanCodec codec = buildCodec();
-        Cats parsed = codec.parse(Cats.class, null);
-        Assert.assertNull("null input stream should result in null object", parsed);
-    }
+public interface Codec {
+    PayloadType getPayloadType();
 }

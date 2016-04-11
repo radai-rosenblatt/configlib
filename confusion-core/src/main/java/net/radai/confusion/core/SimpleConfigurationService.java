@@ -18,26 +18,27 @@
 package net.radai.confusion.core;
 
 import net.radai.confusion.core.api.*;
-import net.radai.confusion.core.spi.BeanCodec;
 import net.radai.confusion.core.spi.BeanPostProcessor;
-import net.radai.confusion.core.spi.Poller;
+import net.radai.confusion.core.spi.source.Source;
+import net.radai.confusion.core.spi.source.SourceListener;
 import net.radai.confusion.core.util.Listeners;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class SimpleConfigurationService<T> implements Poller.Listener, ConfigurationService<T>, ConfigurationServiceLifecycle, AutoCloseable {
+public class SimpleConfigurationService<T> implements ConfigurationService<T>, ServiceLifecycle, SourceListener<T> {
+    private final Logger log = LogManager.getLogger(getClass());
+
     //configuration
     private final Class<T> confBeanClass;
 
     //components
-    private final Poller poller;
-    private final BeanCodec codec;
+    private final Source<T> source;
     private final BeanPostProcessor postProcessor;
     private final Listeners<ConfigurationListener<T>> listeners = new Listeners<>();
 
@@ -47,17 +48,16 @@ public class SimpleConfigurationService<T> implements Poller.Listener, Configura
 
     public SimpleConfigurationService(
             Class<T> confBeanClass,
-            Poller poller,
-            BeanCodec codec,
+            Source<T> source,
             BeanPostProcessor postProcessor
     ) {
-        if (confBeanClass == null || poller == null || codec == null || postProcessor == null) {
+        if (confBeanClass == null || source == null || postProcessor == null) {
             throw new IllegalArgumentException("all arguments are mandatory");
         }
         this.confBeanClass = confBeanClass;
-        this.poller = poller;
-        this.codec = codec;
+        this.source = source;
         this.postProcessor = postProcessor;
+        this.source.register(this);
         //we only load the actual conf when we're started
     }
 
@@ -90,18 +90,17 @@ public class SimpleConfigurationService<T> implements Poller.Listener, Configura
         if (on) {
             throw new IllegalStateException();
         }
-        boolean success;
-        try (InputStream is = poller.fetch()){
-            success = loadConf(is, false);
+        try {
+            if (!loadConf(source.read(), false)) {
+                //means conf did not pass validation
+                throw new IllegalStateException("unable to load initial configuration");
+            }
+        } catch (IllegalStateException e) {
+            throw e; //pass-through
         } catch (Exception e) {
-            //TODO - handle properly
-            throw new IllegalStateException(e);
+            throw new IllegalStateException("while loading initial configuration", e);
         }
-        if (!success) {
-            throw new IllegalStateException("unable to load initial configuration");
-        }
-        poller.register(this);
-        poller.start();
+        source.start();
         on = true;
     }
 
@@ -110,10 +109,10 @@ public class SimpleConfigurationService<T> implements Poller.Listener, Configura
         if (!on) {
             throw new IllegalStateException();
         }
+        //order of on toggle vs ref clear is important
         on = false;
-        poller.unregister(this);
+        source.stop();
         ref.set(null);
-        poller.stop();
     }
 
     @Override
@@ -127,32 +126,28 @@ public class SimpleConfigurationService<T> implements Poller.Listener, Configura
     }
 
     @Override
-    public void sourceChanged(InputStream newContents) throws IOException {
-        loadConf(newContents, true);
+    public void sourceChanged(T newValue) throws Exception {
+        loadConf(newValue, true);
     }
 
     /**
      * handles loading a conf from an input stream
-     * @param source source of (potential) new configuration
+     * @param newBean (potential) new configuration
      * @param notifyListeners notify conf listeners (if conf passes validation)
      * @return true if process resulted in new configuration being loaded
-     * @throws IOException
      */
-    private boolean loadConf(InputStream source, boolean notifyListeners) throws IOException {
+    private synchronized boolean loadConf(T newBean, boolean notifyListeners) throws IOException {
         T oldBean = ref.get();
-        T newBean = source == null ? null : codec.parse(confBeanClass, source);
         BeanPostProcessor.Decision<T> decision = postProcessor.validate(oldBean, newBean);
         if (!decision.isUpdateConf()) {
             return false; //do nothing
         }
         T processedBean = decision.getConfToUse();
         if (decision.isPersistConf()) {
-            try (OutputStream out = poller.store()) {
-                codec.serialize(processedBean, out);
-            }
+            source.write(processedBean); //may throw IOException
         }
         if (!ref.compareAndSet(oldBean, newBean)) {
-            throw new IllegalStateException(); //should never happen - poller is sequential and so is start().
+            throw new IllegalStateException(); //should never happen - source is sequential and so is start().
         }
         if (notifyListeners) {
             ConfigurationChangeEvent<T> event = new SimpleConfigurationChangeEvent<>(getConfigurationType(), oldBean, newBean);

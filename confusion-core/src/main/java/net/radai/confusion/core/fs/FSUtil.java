@@ -17,9 +17,12 @@
 
 package net.radai.confusion.core.fs;
 
+import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
+import java.util.Objects;
 
 /**
  * Created by Radai Rosenblatt
@@ -35,14 +38,14 @@ public class FSUtil {
      */
     public static void waitUntilQuiet(Path path) {
         try {
-            FileTime prevMtime = Files.getLastModifiedTime(path);
+            FileTime prevMtime = getMTime(path);
             FileTime mTime;
             int numSame = 0;
             long start = System.nanoTime();
             while (true) {
                 Thread.sleep(POLL_MILLIS);
-                mTime = Files.getLastModifiedTime(path);
-                if (prevMtime.compareTo(mTime) == 0) {
+                mTime = getMTime(path);
+                if (Objects.equals(prevMtime, mTime)) {
                     numSame++;
                     if (numSame >= POLLS_TO_QUIESCE) {
                         break;
@@ -53,6 +56,14 @@ public class FSUtil {
             long took = System.nanoTime() - start;
         } catch (Exception e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    private static FileTime getMTime(Path path) throws IOException {
+        try {
+            return Files.getLastModifiedTime(path);
+        } catch (NoSuchFileException e) {
+            return null;
         }
     }
 }

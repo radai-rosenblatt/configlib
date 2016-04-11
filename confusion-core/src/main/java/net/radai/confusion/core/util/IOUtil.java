@@ -15,16 +15,26 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core.spi;
+package net.radai.confusion.core.util;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * Created by Radai Rosenblatt
  */
-public interface BeanCodec {
-    <T> T parse(Class<T> beanClass, InputStream from) throws IOException;
-    <T> void serialize(T beanInstance, OutputStream to) throws IOException;
+public class IOUtil {
+    public static byte[] read(InputStream is) throws IOException {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        byte[] buffer = new byte[8192];
+        while (true) {
+            int bytesRead = is.read(buffer);
+            if (bytesRead == -1) {
+                break;
+            }
+            os.write(buffer, 0, bytesRead);
+        }
+        return os.toByteArray();
+    }
 }

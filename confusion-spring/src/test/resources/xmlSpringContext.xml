@@ -25,13 +25,18 @@
         <constructor-arg>
             <bean class="net.radai.confusion.core.SimpleConfigurationService">
                 <constructor-arg type="java.lang.Class" value="net.radai.confusion.cats.Cats"/>
-                <constructor-arg type="net.radai.confusion.core.spi.Poller">
-                    <bean class="net.radai.confusion.core.fs.PathWatcher">
-                        <constructor-arg type="java.io.File" value="file:#{systemProperties['confFile']}"/>
+                <constructor-arg type="net.radai.confusion.core.spi.source.Source">
+                    <bean class="net.radai.confusion.core.spi.source.Sources" factory-method="from">
+                        <constructor-arg type="java.lang.Class" value="net.radai.confusion.cats.Cats"/>
+                        <constructor-arg type="net.radai.confusion.core.spi.store.Store">
+                        <bean class="net.radai.confusion.core.fs.PathStore">
+                            <constructor-arg type="java.io.File" value="file:#{systemProperties['confFile']}"/>
+                        </bean>
+                        </constructor-arg>
+                        <constructor-arg type="net.radai.confusion.core.spi.codec.Codec">
+                            <bean class="net.radai.confusion.ini.IniCodec" />
+                        </constructor-arg>
                     </bean>
-                </constructor-arg>
-                <constructor-arg type="net.radai.confusion.core.spi.BeanCodec">
-                    <bean class="net.radai.confusion.ini.IniBeanCodec" />
                 </constructor-arg>
                 <constructor-arg type="net.radai.confusion.core.spi.BeanPostProcessor">
                     <bean class="net.radai.confusion.beanvalidation.BeanValidationPostProcessor"/>

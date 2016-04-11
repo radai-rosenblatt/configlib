@@ -15,22 +15,18 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core;
+package net.radai.confusion.core.spi.source;
 
-import java.io.File;
+import java.io.IOException;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class Confusion {
-
-    public static <T> SimpleConfigurationService<T> create(Class<T> configClass, File configFile) {
-        throw new UnsupportedOperationException("TBD");
-//        return new SimpleConfigurationService<>(
-//                configClass,
-//                new PathStore(configFile.toPath()),
-//                new IniBeanCodec("UTF-8"),
-//                new SimplePostProcessor()
-//        );
-    }
+public interface Source<T> {
+    T read() throws IOException;
+    void write(T payload) throws IOException;
+    void start();
+    void stop();
+    void register(SourceListener<T> newListener);
+    void unregister(SourceListener<T> existingListener);
 }

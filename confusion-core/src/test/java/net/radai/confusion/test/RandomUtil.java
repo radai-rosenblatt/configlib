@@ -15,22 +15,28 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core;
+package net.radai.confusion.test;
 
-import java.io.File;
+import java.util.Random;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class Confusion {
+public class RandomUtil {
 
-    public static <T> SimpleConfigurationService<T> create(Class<T> configClass, File configFile) {
-        throw new UnsupportedOperationException("TBD");
-//        return new SimpleConfigurationService<>(
-//                configClass,
-//                new PathStore(configFile.toPath()),
-//                new IniBeanCodec("UTF-8"),
-//                new SimplePostProcessor()
-//        );
+    public static String randomString(Random random) {
+        StringBuilder sb = new StringBuilder();
+        int length = 1 + random.nextInt(1023);
+        for (int i=0; i<length; i++) {
+            char c = (char)(random.nextInt(26) + 'a');
+            sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    public static byte[] randomBlob(Random random) {
+        byte[] data = new byte[1 + random.nextInt(1023)];
+        random.nextBytes(data);
+        return data;
     }
 }

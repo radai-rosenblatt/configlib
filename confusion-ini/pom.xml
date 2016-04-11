@@ -52,11 +52,6 @@
         <!-- test libraries -->
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.github.radai-rosenblatt</groupId>
             <artifactId>confusion-core</artifactId>
             <classifier>tests</classifier>

@@ -15,22 +15,20 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core;
+package net.radai.confusion.core.spi.codec;
 
-import java.io.File;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class Confusion {
+public abstract class AbstractCodecTest {
+    protected abstract Codec buildCodec();
+    protected abstract Class getTestClass();
 
-    public static <T> SimpleConfigurationService<T> create(Class<T> configClass, File configFile) {
-        throw new UnsupportedOperationException("TBD");
-//        return new SimpleConfigurationService<>(
-//                configClass,
-//                new PathStore(configFile.toPath()),
-//                new IniBeanCodec("UTF-8"),
-//                new SimplePostProcessor()
-//        );
+    @Test
+    public void testTypeGetter() {
+        Assert.assertNotNull(buildCodec().getPayloadType());
     }
 }

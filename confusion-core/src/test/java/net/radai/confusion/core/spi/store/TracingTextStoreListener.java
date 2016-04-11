@@ -15,39 +15,33 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core.fs;
+package net.radai.confusion.core.spi.store;
 
-import com.google.common.io.ByteStreams;
-import net.radai.confusion.core.spi.Poller;
-
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class TracingListener implements Poller.Listener{
-    private final List<TraceEntry> log = new ArrayList<>();
+public class TracingTextStoreListener implements TextStoreListener {
+    private final List<Entry> log = new ArrayList<>();
 
     @Override
-    public void sourceChanged(InputStream newContents) throws IOException{
+    public void sourceChanged(String newContents) {
         long nanoClock = System.nanoTime();
         long clock = System.currentTimeMillis();
-        byte[] data = ByteStreams.toByteArray(newContents);
-        log.add(new TraceEntry(clock, nanoClock, data));
+        log.add(new Entry(clock, nanoClock, newContents));
     }
 
     public int getNumEvents() {
         return log.size();
     }
 
-    public byte[] getEvent(int i) {
+    public String getEvent(int i) {
         return log.get(i).data;
     }
 
-    public byte[] getLatestEvent() {
+    public String getLatestEvent() {
         return log.get(log.size()-1).data;
     }
 
@@ -55,12 +49,12 @@ public class TracingListener implements Poller.Listener{
         return log.get(log.size()-1).nanoClock;
     }
 
-    public static class TraceEntry {
+    public static class Entry {
         long systemClock;
         long nanoClock;
-        byte[] data;
+        String data;
 
-        public TraceEntry(long systemClock, long nanoClock, byte[] data) {
+        public Entry(long systemClock, long nanoClock, String data) {
             this.systemClock = systemClock;
             this.nanoClock = nanoClock;
             this.data = data;

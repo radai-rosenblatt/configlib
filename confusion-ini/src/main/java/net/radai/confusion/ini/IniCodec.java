@@ -20,7 +20,7 @@ package net.radai.confusion.ini;
 import net.radai.beanz.Beanz;
 import net.radai.beanz.api.*;
 import net.radai.beanz.util.ReflectionUtil;
-import net.radai.confusion.core.spi.BeanCodec;
+import net.radai.confusion.core.spi.codec.TextCodec;
 import net.radai.confusion.core.util.Inflection;
 import org.ini4j.Config;
 import org.ini4j.Ini;
@@ -34,30 +34,14 @@ import java.util.*;
 /**
  * Created by Radai Rosenblatt
  */
-public class IniBeanCodec implements BeanCodec {
-    private final String charset;
-
-    public IniBeanCodec() {
-        this("UTF-8");
-    }
-
-    public IniBeanCodec(String charset) {
-        this.charset = charset;
-    }
-
-    public String getCharset() {
-        return charset;
-    }
+public class IniCodec implements TextCodec {
 
     @Override
-    public <T> T parse(Class<T> beanClass, InputStream from) throws IOException {
+    public <T> T parse(Class<T> beanClass, String from) {
         if (from == null) {
             return null;
         }
-        Ini ini;
-        try (Reader reader = new InputStreamReader(from, charset)){
-            ini = readIni(reader);
-        }
+        Ini ini = readIni(from);
         String globalSectionName = ini.getConfig().getGlobalSectionName();
         Bean<T> bean = Beanz.create(beanClass);
         Set<String> sectionNames = ini.keySet();
@@ -184,7 +168,7 @@ public class IniBeanCodec implements BeanCodec {
     }
 
     @Override
-    public <T> void serialize(T beanInstance, OutputStream to) throws IOException {
+    public <T> String serialize(T beanInstance) {
         Config iniConfig = buildIniConfig();
         Ini ini = new Ini();
         ini.setConfig(iniConfig);
@@ -194,7 +178,7 @@ public class IniBeanCodec implements BeanCodec {
         for (Map.Entry<String, Property> propEntry : bean.getProperties().entrySet()) {
             String propName = propEntry.getKey();
             Property prop = propEntry.getValue();
-            Codec codec = prop.getCodec();
+            net.radai.beanz.api.Codec codec = prop.getCodec();
             String singular;
             //TODO - differentiate between nulls and empty sets
             switch (prop.getType()) {
@@ -261,7 +245,12 @@ public class IniBeanCodec implements BeanCodec {
             }
         }
 
-        ini.store(to);
+        try (StringWriter writer = new StringWriter()) {
+            ini.store(writer);
+            return writer.toString();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private void serializeToSections(Ini ini, Iterable<?> beans, String propName) {
@@ -278,7 +267,7 @@ public class IniBeanCodec implements BeanCodec {
         for (Map.Entry<String, Property> propEntry : bean.getProperties().entrySet()) {
             String propName = propEntry.getKey();
             Property prop = propEntry.getValue();
-            Codec codec = prop.getCodec();
+            net.radai.beanz.api.Codec codec = prop.getCodec();
             if (codec == null) {
                 throw new UnsupportedOperationException(); //ini does not support nested sections
             }
@@ -329,13 +318,17 @@ public class IniBeanCodec implements BeanCodec {
         return result;
     }
 
-    private static Ini readIni(Reader from) throws IOException {
+    private static Ini readIni(String from) {
         Config iniConfig = buildIniConfig();
         IniParser parser = IniParser.newInstance(iniConfig);
         Ini ini = new Ini();
         ini.setConfig(iniConfig);
         IniBuilder iniBuilder = IniBuilder.newInstance(ini);
-        parser.parse(from, iniBuilder);
+        try {
+            parser.parse(new StringReader(from), iniBuilder);
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
         return ini;
     }
 

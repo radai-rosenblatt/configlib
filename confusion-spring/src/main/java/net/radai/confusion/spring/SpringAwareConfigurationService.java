@@ -20,7 +20,7 @@ package net.radai.confusion.spring;
 import net.radai.confusion.core.api.ConfigurationChangeEvent;
 import net.radai.confusion.core.api.ConfigurationListener;
 import net.radai.confusion.core.api.ConfigurationService;
-import net.radai.confusion.core.api.ConfigurationServiceLifecycle;
+import net.radai.confusion.core.api.ServiceLifecycle;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -67,18 +67,18 @@ public class SpringAwareConfigurationService<T> implements
     @Override
     @PostConstruct
     public void afterPropertiesSet() throws Exception {
-        if (delegate instanceof ConfigurationServiceLifecycle) {
-            ((ConfigurationServiceLifecycle)delegate).start();
-        }
         delegate.register(this);
+        if (delegate instanceof ServiceLifecycle) {
+            ((ServiceLifecycle)delegate).start();
+        }
     }
 
     @Override
     @PreDestroy
     public void destroy() throws Exception {
         delegate.unregister(this);
-        if (delegate instanceof ConfigurationServiceLifecycle) {
-            ((ConfigurationServiceLifecycle)delegate).stop();
+        if (delegate instanceof ServiceLifecycle) {
+            ((ServiceLifecycle)delegate).stop();
         }
     }
 
