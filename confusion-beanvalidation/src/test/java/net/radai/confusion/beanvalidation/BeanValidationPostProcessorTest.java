@@ -19,7 +19,7 @@ package net.radai.confusion.beanvalidation;
 
 import net.radai.confusion.cats.Cat;
 import net.radai.confusion.cats.Cats;
-import net.radai.confusion.core.spi.BeanPostProcessor;
+import net.radai.confusion.core.spi.validator.ValidatorDecision;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -33,26 +33,26 @@ public class BeanValidationPostProcessorTest {
 
     @Test
     public void testSingleCat() {
-        BeanValidationPostProcessor postProcessor = new BeanValidationPostProcessor();
-        BeanPostProcessor.Decision<Cat> decision;
+        net.radai.confusion.beanvalidation.Validator postProcessor = new net.radai.confusion.beanvalidation.Validator();
+        ValidatorDecision<Cat> validatorDecision;
 
         Cat invalid = new Cat("bob", "cannot exist", Arrays.asList("tuna", "lettuce"));
-        decision = postProcessor.validate(null, invalid);
-        Assert.assertFalse(decision.isUpdateConf());
+        validatorDecision = postProcessor.validate(null, invalid);
+        Assert.assertFalse(validatorDecision.isUpdateConf());
 
         Cat valid = new Cat("bob", "much better now", Arrays.asList("tuna", "laser pointers"));
-        decision = postProcessor.validate(null, valid);
-        Assert.assertTrue(decision.isUpdateConf());
-        Assert.assertTrue(decision.getConfToUse() == valid);
+        validatorDecision = postProcessor.validate(null, valid);
+        Assert.assertTrue(validatorDecision.isUpdateConf());
+        Assert.assertTrue(validatorDecision.getConfToUse() == valid);
     }
 
     @Test
     public void testCats() {
-        BeanValidationPostProcessor postProcessor = new BeanValidationPostProcessor();
-        BeanPostProcessor.Decision<Cats> decision;
+        net.radai.confusion.beanvalidation.Validator postProcessor = new net.radai.confusion.beanvalidation.Validator();
+        ValidatorDecision<Cats> validatorDecision;
 
         Cats invalid = new Cats(null, null, new Cat(null, null, null), new Cat(null, null, Collections.singletonList("LETTUCE")));
-        decision = postProcessor.validate(null, invalid);
-        Assert.assertFalse(decision.isUpdateConf());
+        validatorDecision = postProcessor.validate(null, invalid);
+        Assert.assertFalse(validatorDecision.isUpdateConf());
     }
 }

@@ -35,6 +35,7 @@ import java.nio.file.StandardOpenOption;
  * Created by Radai Rosenblatt
  */
 public class SpringAnnotationConfigTest {
+
     @Test
     public void testSpringAnnotationIntegration() throws Exception {
         Path dir = Files.createTempDirectory("test");

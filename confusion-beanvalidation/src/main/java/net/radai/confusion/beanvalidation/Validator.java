@@ -17,39 +17,38 @@
 
 package net.radai.confusion.beanvalidation;
 
-import net.radai.confusion.core.spi.BeanPostProcessor;
+import net.radai.confusion.core.spi.validator.ValidatorDecision;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
-import javax.validation.Validator;
 import java.util.Set;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class BeanValidationPostProcessor implements BeanPostProcessor{
-    private static final Validator validator = Validation.buildDefaultValidatorFactory().getValidator(); //thread safe
+public class Validator implements net.radai.confusion.core.spi.validator.Validator {
+    private static final javax.validation.Validator validator = Validation.buildDefaultValidatorFactory().getValidator(); //thread safe
 
     private boolean allowNullObject;
 
-    public BeanValidationPostProcessor() {
+    public Validator() {
         this(false);
     }
 
-    public BeanValidationPostProcessor(boolean allowNullObject) {
+    public Validator(boolean allowNullObject) {
         this.allowNullObject = allowNullObject;
     }
 
     @Override
-    public <T> Decision<T> validate(T currConf, T discoveredConf) throws IllegalArgumentException {
+    public <T> ValidatorDecision<T> validate(T currConf, T discoveredConf) throws IllegalArgumentException {
         if (discoveredConf == null) {
             //nulls are not allowed under bean validation spec, so special handling
-            return new Decision<>(allowNullObject, null, false);
+            return new ValidatorDecision<>(allowNullObject, null, false);
         }
         Set<ConstraintViolation<T>> violations = validator.validate(discoveredConf);
         if (!violations.isEmpty()) {
-            return new Decision<>(false, null, false);
+            return new ValidatorDecision<>(false, null, false);
         }
-        return new Decision<>(true, discoveredConf, false);
+        return new ValidatorDecision<>(true, discoveredConf, false);
     }
 }

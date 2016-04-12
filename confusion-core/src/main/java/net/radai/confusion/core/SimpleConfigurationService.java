@@ -18,7 +18,8 @@
 package net.radai.confusion.core;
 
 import net.radai.confusion.core.api.*;
-import net.radai.confusion.core.spi.BeanPostProcessor;
+import net.radai.confusion.core.spi.validator.ValidatorDecision;
+import net.radai.confusion.core.spi.validator.Validator;
 import net.radai.confusion.core.spi.source.Source;
 import net.radai.confusion.core.spi.source.SourceListener;
 import net.radai.confusion.core.util.Listeners;
@@ -39,7 +40,7 @@ public class SimpleConfigurationService<T> implements ConfigurationService<T>, S
 
     //components
     private final Source<T> source;
-    private final BeanPostProcessor postProcessor;
+    private final Validator postProcessor;
     private final Listeners<ConfigurationListener<T>> listeners = new Listeners<>();
 
     //state
@@ -49,7 +50,7 @@ public class SimpleConfigurationService<T> implements ConfigurationService<T>, S
     public SimpleConfigurationService(
             Class<T> confBeanClass,
             Source<T> source,
-            BeanPostProcessor postProcessor
+            Validator postProcessor
     ) {
         if (confBeanClass == null || source == null || postProcessor == null) {
             throw new IllegalArgumentException("all arguments are mandatory");
@@ -107,7 +108,7 @@ public class SimpleConfigurationService<T> implements ConfigurationService<T>, S
     @Override
     public synchronized void stop() {
         if (!on) {
-            throw new IllegalStateException();
+            return;
         }
         //order of on toggle vs ref clear is important
         on = false;
@@ -138,12 +139,12 @@ public class SimpleConfigurationService<T> implements ConfigurationService<T>, S
      */
     private synchronized boolean loadConf(T newBean, boolean notifyListeners) throws IOException {
         T oldBean = ref.get();
-        BeanPostProcessor.Decision<T> decision = postProcessor.validate(oldBean, newBean);
-        if (!decision.isUpdateConf()) {
+        ValidatorDecision<T> validatorDecision = postProcessor.validate(oldBean, newBean);
+        if (!validatorDecision.isUpdateConf()) {
             return false; //do nothing
         }
-        T processedBean = decision.getConfToUse();
-        if (decision.isPersistConf()) {
+        T processedBean = validatorDecision.getConfToUse();
+        if (validatorDecision.isPersistConf()) {
             source.write(processedBean); //may throw IOException
         }
         if (!ref.compareAndSet(oldBean, newBean)) {

@@ -17,20 +17,35 @@
 
 package net.radai.confusion.core;
 
-import java.io.File;
+import net.radai.confusion.core.spi.codec.Codec;
+import net.radai.confusion.core.spi.source.Sources;
+import net.radai.confusion.core.spi.store.Store;
+import net.radai.confusion.core.spi.validator.NopValidator;
+import net.radai.confusion.core.spi.validator.NotNullValidator;
 
 /**
  * Created by Radai Rosenblatt
  */
 public class Confusion {
 
-    public static <T> SimpleConfigurationService<T> create(Class<T> configClass, File configFile) {
-        throw new UnsupportedOperationException("TBD");
-//        return new SimpleConfigurationService<>(
-//                configClass,
-//                new PathStore(configFile.toPath()),
-//                new IniBeanCodec("UTF-8"),
-//                new SimplePostProcessor()
-//        );
+    public static <T> SimpleConfigurationService<T> create(
+            Class<T> configClass,
+            Store store,
+            Codec codec
+    ) {
+        return create(configClass, store, codec, true);
+    }
+
+    public static <T> SimpleConfigurationService<T> create(
+            Class<T> configClass,
+            Store store,
+            Codec codec,
+            boolean allowNull
+    ) {
+        return new SimpleConfigurationService<>(
+                configClass,
+                Sources.from(configClass, store, codec),
+                allowNull ? new NopValidator() : new NotNullValidator()
+        );
     }
 }
