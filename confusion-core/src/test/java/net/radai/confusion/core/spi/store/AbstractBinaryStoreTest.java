@@ -94,20 +94,28 @@ public abstract class AbstractBinaryStoreTest extends AbstractStoreTest {
         store.write(null);
         waitForQuiesce();
         Assert.assertNull(store.read());
+        Assert.assertEquals(2, listener.getNumEvents());
         Assert.assertNull(listener.getEvent(1));
 
         //double null
         store.write(null);
         waitForQuiesce();
         Assert.assertNull(store.read());
-        Assert.assertEquals(2, listener.getNumEvents()); //no new event
+        int numEvents;
+        if (store.reportsConsecutiveNulls()) {
+            numEvents = 3;
+            Assert.assertNull(listener.getEvent(2));
+        } else {
+            numEvents = 2;
+        }
+        Assert.assertEquals(numEvents, listener.getNumEvents());
 
         //null --> !null
         data = random();
         store.write(data);
         waitForQuiesce();
         Assert.assertArrayEquals(data, store.read());
-        Assert.assertArrayEquals(data, listener.getEvent(2));
+        Assert.assertArrayEquals(data, listener.getLatestEvent());
     }
 
     @Test

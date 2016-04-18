@@ -23,7 +23,10 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Root level="info">
+        <Logger name="net.radai" level="trace" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+        <Root level="WARN">
             <AppenderRef ref="Console"/>
         </Root>
     </Loggers>

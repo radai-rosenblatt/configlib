@@ -45,6 +45,10 @@ public abstract class AbstractPollingStore implements Store {
         stopPollThread();
     }
 
+    protected boolean isOn() {
+        return on;
+    }
+
     protected void startPollThread() {
         if (pollThread != null) {
             throw new IllegalStateException();
@@ -71,7 +75,7 @@ public abstract class AbstractPollingStore implements Store {
     }
 
     protected Thread createThread(StorePollRunnable runnable) {
-        Thread t = new Thread(runnable, "poll thread for " + this);
+        Thread t = new Thread(runnable, this + " poller");
         t.setDaemon(true);
         return t;
     }

@@ -26,4 +26,13 @@ public interface Store {
     PayloadType getPayloadType();
     void start();
     void stop();
+
+    /**
+     * whether or not this store will report consecutive null update events (change events
+     * where the new discovered value is null).
+     * @return true if store supports detecting consecutive nulls
+     */
+    default boolean reportsConsecutiveNulls() {
+        return false;
+    }
 }
