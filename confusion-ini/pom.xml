@@ -41,12 +41,8 @@
         <!-- libraries -->
 
         <dependency>
-            <groupId>org.ini4j</groupId>
-            <artifactId>ini4j</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.github.radai-rosenblatt</groupId>
-            <artifactId>beanz</artifactId>
+            <artifactId>garbanzo</artifactId>
         </dependency>
 
         <!-- test libraries -->
@@ -60,6 +56,11 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.ini4j</groupId>
+            <artifactId>ini4j</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
