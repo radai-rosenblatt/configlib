@@ -159,13 +159,8 @@
             </dependency>
             <dependency>
                 <groupId>com.github.radai-rosenblatt</groupId>
-                <artifactId>beanz</artifactId>
-                <version>0.1-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.radai-rosenblatt</groupId>
                 <artifactId>garbanzo</artifactId>
-                <version>0.1-SNAPSHOT</version>
+                <version>master-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
