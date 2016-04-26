@@ -96,5 +96,9 @@ and then you could depend on just the bits and pieces you need:
     <groupId>com.github.radai-rosenblatt.confusion</groupId>
     <artifactId>confusion-ini</artifactId>
     <version>master-SNAPSHOT</version>
-</dependency>
+</dependency> 
 ```
+
+### Notes on building locally
+
+must use `mvn clean install` without skipping tests the 1st time you build, since child modules depend on the core module's test classes, and jitpack doesnt publish the tests artifact for some odd reason.
