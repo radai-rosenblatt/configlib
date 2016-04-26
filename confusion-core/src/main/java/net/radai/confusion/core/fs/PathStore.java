@@ -44,6 +44,10 @@ public class PathStore extends AbstractBinaryStore {
         this(file.toPath());
     }
 
+    public PathStore(String path) {
+        this(Paths.get(path));
+    }
+
     @Override
     protected BinaryPollRunnable createRunnable() {
         return new PollRunnable();
