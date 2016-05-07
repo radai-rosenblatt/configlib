@@ -159,6 +159,7 @@ public class KafkaStore extends AbstractBinaryStore {
 
                     //we're connected, topic looks fine, start listening.
                     while (!shouldDie()) {
+                        log.trace("listening on kafka topic {} offset {} for at most {} millis", topic, position, pollMillis);
                         ConsumerRecords<String, byte[]> records = consumer.poll(pollMillis);
                         boolean gotSomething = records != null && !records.isEmpty();
                         if (gotSomething) {

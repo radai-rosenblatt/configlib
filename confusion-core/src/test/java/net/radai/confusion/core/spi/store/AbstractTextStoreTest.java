@@ -154,6 +154,30 @@ public abstract class AbstractTextStoreTest extends AbstractStoreTest {
         Assert.assertEquals(0, listener.getNumEvents());
     }
 
+    @Test
+    public void testEventOnWrite() throws Exception {
+        TracingTextStoreListener listener = new TracingTextStoreListener();
+        TextStore store = buildStore();
+        store.register(listener);
+        store.start();
+        waitForQuiesce();
+        String value = random();
+        store.write(value);
+        waitForQuiesce();
+        Assert.assertEquals(1, listener.getNumEvents());
+        Assert.assertEquals(value, listener.getLatestEvent());
+        store.write(null);
+        waitForQuiesce();
+        Assert.assertEquals(2, listener.getNumEvents());
+        Assert.assertNull(listener.getLatestEvent());
+        if (store.reportsConsecutiveNulls()) {
+            store.write(null);
+            waitForQuiesce();
+            Assert.assertEquals(3, listener.getNumEvents());
+            Assert.assertNull(listener.getLatestEvent());
+        }
+    }
+
     protected String random() {
         return RandomUtil.randomString(new Random());
     }

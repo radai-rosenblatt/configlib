@@ -160,6 +160,30 @@ public abstract class AbstractBinaryStoreTest extends AbstractStoreTest {
         Assert.assertEquals(0, listener.getNumEvents());
     }
 
+    @Test
+    public void testEventOnWrite() throws Exception {
+        TracingBinaryStoreListener listener = new TracingBinaryStoreListener();
+        BinaryStore store = buildStore();
+        store.register(listener);
+        store.start();
+        waitForQuiesce();
+        byte[] value = random();
+        store.write(value);
+        waitForQuiesce();
+        Assert.assertEquals(1, listener.getNumEvents());
+        Assert.assertArrayEquals(value, listener.getLatestEvent());
+        store.write(null);
+        waitForQuiesce();
+        Assert.assertEquals(2, listener.getNumEvents());
+        Assert.assertNull(listener.getLatestEvent());
+        if (store.reportsConsecutiveNulls()) {
+            store.write(null);
+            waitForQuiesce();
+            Assert.assertEquals(3, listener.getNumEvents());
+            Assert.assertNull(listener.getLatestEvent());
+        }
+    }
+
     protected byte[] random() {
         return RandomUtil.randomBlob(new Random());
     }

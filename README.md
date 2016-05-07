@@ -2,7 +2,7 @@
 ### Briefly
 Suppose your application has configurable bits. suppose also that you would like to express your configuration as an object:
 ```java
-public class AppConfiguration {
+public class AppConfig {
     private int numThreads;
     private int listenOnPort;
     //getters, setters, constructors, the usual.
@@ -10,44 +10,44 @@ public class AppConfiguration {
 ```
 Confusion allows you to create a Configuration Service:
 ```java
-ConfigurationService<AppConfiguration> srv = Confusion.create(...);
+ConfigurationService<AppConfig> srv = Confusion.create(...);
 ```
-through which you you could read the latest configuration (which updates when the underlying storage does):
+through which you could read the latest configuration (which updates when the underlying storage does):
 ```java
 AppConfiguration latest = srv.getConfiguration();
 ```
 or register to be notified of changes:
 ```java
 srv.register(changeEvent -> {
-    AppConfiguration prev = changeEvent.getOldConf();
-    AppConfiguration curr = changeEvent.getNewConf();
+    AppConfig prev = changeEvent.getOldConf();
+    AppConfig curr = changeEvent.getNewConf();
     if (curr.numThreads != prev.numThreads) {
         //resize the thread pool
     }
 });
 ```
-If youre using Spring, your life could become even easier:
+If you're using Spring, your life could become even easier:
 ```java
 @Named
 public class SomeSpringBean {
     @Inject
-    private ConfigurationService<AppConfiguration> confService;
+    private ConfigurationService<AppConfig> confService;
     @Inject
-    private AppConfiguration initialConf;
+    private AppConfig initialConf;
 
     @EventListener
-    public void configChanged(ConfigurationChangeEvent<AppConfiguration> event) {
+    public void configChanged(ConfigurationChangeEvent<AppConfig> evt) {
         //do something
     }
 }
 ```
 Configuration can be stored as a local INI file:
 ```java
-srv = Confusion.create(AppConfiguration.class, new PathStore("/some/file.ini"), new IniCodec());
+srv = Confusion.create(AppConfig.class, new PathStore("/some/file.ini"), new IniCodec());
 ```
 or as XML pulled from consul under some key:
 ```java
-srv = Confusion.create(AppConfiguration.class, new ConsulStore("localhost", 8500, "someKey"), new JaxbCodec());
+srv = Confusion.create(AppConfig.class, new ConsulStore("localhost", 8500, "key"), new JaxbCodec());
 ```
 or any other combination of Store and Codec
 

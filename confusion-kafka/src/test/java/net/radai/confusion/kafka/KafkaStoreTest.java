@@ -115,7 +115,7 @@ public class KafkaStoreTest extends AbstractBinaryStoreTest {
 
     @Override
     protected KafkaStore buildStore() throws Exception {
-        return new KafkaStore("localhost", 9092, topicName, 3);
+        return new KafkaStore("localhost", 9092, topicName, 10);
     }
 
     @Override
