@@ -19,7 +19,8 @@ package net.radai.confusion.core;
 
 import net.radai.confusion.core.api.ConfigurationChangeEvent;
 import net.radai.confusion.core.api.ConfigurationListener;
-import net.radai.confusion.core.spi.validator.ValidatorDecision;
+import net.radai.confusion.core.api.InvalidConfigurationEvent;
+import net.radai.confusion.core.spi.validator.ValidationResults;
 import net.radai.confusion.core.spi.validator.Validator;
 import net.radai.confusion.core.spi.source.Source;
 import org.junit.Assert;
@@ -30,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /**
  * Created by Radai Rosenblatt
@@ -40,7 +42,7 @@ public class SimpleConfigurationServiceTest {
     @Mock
     private Source<ConfClass> source;
     @Mock
-    private Validator postProcessor;
+    private Validator validator;
     @Mock
     private ConfigurationListener<ConfClass> listener;
 
@@ -48,7 +50,7 @@ public class SimpleConfigurationServiceTest {
 
     @Before
     public void setup() {
-        confService = new SimpleConfigurationService<>(ConfClass.class, source, postProcessor);
+        confService = new SimpleConfigurationService<>(ConfClass.class, source, validator);
         Mockito.verify(source).register(Mockito.eq(confService)); //happens @constructor time
         confService.register(listener);
     }
@@ -56,7 +58,7 @@ public class SimpleConfigurationServiceTest {
     @Test(expected = IllegalStateException.class)
     public void testCantStartWithNoConf() throws Exception {
         Mockito.when(source.read()).thenReturn(null);
-        Mockito.when(postProcessor.validate(Mockito.any(), Mockito.isNull())).thenReturn(new ValidatorDecision<>(false, null, false));
+        Mockito.when(validator.validate(Mockito.any(), Mockito.isNull())).thenReturn(new ValidationResults<>(false, null));
         confService.start();
     }
 
@@ -64,7 +66,7 @@ public class SimpleConfigurationServiceTest {
     public void testNormalBoot() throws Exception {
         ConfClass c1 = new ConfClass();
         Mockito.when(source.read()).thenReturn(c1);
-        Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new ValidatorDecision<>(true, c1, false));
+        Mockito.when(validator.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new ValidationResults<>(true, null));
 
         confService.start();
         Mockito.verify(source).start();
@@ -77,10 +79,10 @@ public class SimpleConfigurationServiceTest {
     public void testBadConfIgnored() throws Exception {
         //conf 1 is valid
         ConfClass c1 = new ConfClass();
-        Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new ValidatorDecision<>(true, c1, false));
+        Mockito.when(validator.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new ValidationResults<>(true, null));
         //conf 2 is invalid
         ConfClass c2 = new ConfClass();
-        Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c2))).thenReturn(new ValidatorDecision<>(false, null, false));
+        Mockito.when(validator.validate(Mockito.any(), Mockito.eq(c2))).thenReturn(new ValidationResults<>(false, null));
         //current state is 1
         Mockito.when(source.read()).thenReturn(c1);
 
@@ -89,17 +91,17 @@ public class SimpleConfigurationServiceTest {
 
         confService.sourceChanged(c2);
         Assert.assertTrue(confService.getConfiguration() == c1); //still 1
-        Mockito.verifyNoMoreInteractions(listener); //listeners not called on bad conf
+        Mockito.verify(listener).invalidConfigurationRead(Mockito.any(InvalidConfigurationEvent.class));
     }
 
     @Test
     public void testGoodConfPickedUp() throws Exception {
         //conf 1 is valid
         ConfClass c1 = new ConfClass();
-        Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new ValidatorDecision<>(true, c1, false));
+        Mockito.when(validator.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new ValidationResults<>(true, null));
         //conf 2 also valid
         ConfClass c2 = new ConfClass();
-        Mockito.when(postProcessor.validate(Mockito.any(), Mockito.eq(c2))).thenReturn(new ValidatorDecision<>(true, c2, false));
+        Mockito.when(validator.validate(Mockito.any(), Mockito.eq(c2))).thenReturn(new ValidationResults<>(true, null));
         //current state is 1
         Mockito.when(source.read()).thenReturn(c1);
 
@@ -114,6 +116,19 @@ public class SimpleConfigurationServiceTest {
         Assert.assertEquals(ConfClass.class, event.getConfigurationType());
         Assert.assertEquals(c1, event.getOldConf());
         Assert.assertEquals(c2, event.getNewConf());
+    }
+
+    @Test
+    public void testUpdateConfiguration() throws Exception {
+        //conf 1 is valid
+        ConfClass c1 = new ConfClass();
+        Mockito.when(validator.validate(Mockito.any(), Mockito.eq(c1))).thenReturn(new ValidationResults<>(true, null));
+        ReflectionTestUtils.setField(confService, "on", true);
+
+        confService.updateConfiguration(c1);
+
+        Mockito.verify(validator).validate(Mockito.any(), Mockito.eq(c1));
+        Mockito.verify(source).write(c1);
     }
 
     private static class ConfClass {

@@ -15,31 +15,28 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core.spi.validator;
+package net.radai.confusion.core.api;
+
+import net.radai.confusion.core.spi.validator.ValidationResults;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class ValidatorDecision<T> {
-    private final boolean updateConf;  //or ignore
-    private final T confToUse;         //if update, what to use as the new conf
-    private final boolean persistConf; //in addition to using the above conf, save it back to source
+public class InvalidConfigurationException extends RuntimeException { //generic classes cannot extend Throwable...
+    private final Object invalidConf;
+    private final ValidationResults<?> validationResults;
 
-    public ValidatorDecision(boolean updateConf, T confToUse, boolean persistConf) {
-        this.updateConf = updateConf;
-        this.confToUse = confToUse;
-        this.persistConf = persistConf;
+    public Object getInvalidConf() {
+        return invalidConf;
     }
 
-    public boolean isUpdateConf() {
-        return updateConf;
+    public ValidationResults<?> getValidationResults() {
+        return validationResults;
     }
 
-    public T getConfToUse() {
-        return confToUse;
-    }
-
-    public boolean isPersistConf() {
-        return persistConf;
+    public InvalidConfigurationException(Object invalidConf, ValidationResults<?> validationResults) {
+        super("configuration object failed validation");
+        this.invalidConf = invalidConf;
+        this.validationResults = validationResults;
     }
 }

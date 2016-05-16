@@ -17,10 +17,13 @@
 
 package net.radai.confusion.core.api;
 
+import net.radai.confusion.core.spi.validator.ValidationResults;
+
 /**
  * Created by Radai Rosenblatt
  */
-public interface ConfigurationListener<T> {
-    void configurationChanged(ConfigurationChangeEvent<T> event);
-    void invalidConfigurationRead(InvalidConfigurationEvent<T> event);
+public interface InvalidConfigurationEvent<T> {
+    T getInvalidConf();
+    ValidationResults<?> getValidationResults();
+    Class<T> getConfigurationType();
 }

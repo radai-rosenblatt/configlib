@@ -20,9 +20,9 @@ package net.radai.confusion.core.spi.validator;
 /**
  * Created by Radai Rosenblatt
  */
-public class NopValidator implements Validator {
+public class NopValidator implements Validator<Void> {
     @Override
-    public <T> ValidatorDecision<T> validate(T currConf, T discoveredConf) throws IllegalArgumentException {
-        return new ValidatorDecision<>(true, discoveredConf, false);
+    public ValidationResults<Void> validate(Object currConf, Object discoveredConf) {
+        return new ValidationResults<>(true, null);
     }
 }

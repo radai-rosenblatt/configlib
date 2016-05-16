@@ -19,12 +19,14 @@ package net.radai.confusion.beanvalidation;
 
 import net.radai.confusion.cats.Cat;
 import net.radai.confusion.cats.Cats;
-import net.radai.confusion.core.spi.validator.ValidatorDecision;
+import net.radai.confusion.core.spi.validator.ValidationResults;
 import org.junit.Assert;
 import org.junit.Test;
 
+import javax.validation.ConstraintViolation;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Set;
 
 /**
  * Created by Radai Rosenblatt
@@ -33,26 +35,26 @@ public class BeanValidationPostProcessorTest {
 
     @Test
     public void testSingleCat() {
-        net.radai.confusion.beanvalidation.Validator postProcessor = new net.radai.confusion.beanvalidation.Validator();
-        ValidatorDecision<Cat> validatorDecision;
+        BeanValidator postProcessor = new BeanValidator();
+        ValidationResults<Set<ConstraintViolation<Object>>> validationResults;
 
         Cat invalid = new Cat("bob", "cannot exist", Arrays.asList("tuna", "lettuce"));
-        validatorDecision = postProcessor.validate(null, invalid);
-        Assert.assertFalse(validatorDecision.isUpdateConf());
+        validationResults = postProcessor.validate(null, invalid);
+        Assert.assertFalse(validationResults.isValid());
 
         Cat valid = new Cat("bob", "much better now", Arrays.asList("tuna", "laser pointers"));
-        validatorDecision = postProcessor.validate(null, valid);
-        Assert.assertTrue(validatorDecision.isUpdateConf());
-        Assert.assertTrue(validatorDecision.getConfToUse() == valid);
+        validationResults = postProcessor.validate(null, valid);
+        Assert.assertTrue(validationResults.isValid());
+        Assert.assertTrue(validationResults.getValidatorOutput().isEmpty());
     }
 
     @Test
     public void testCats() {
-        net.radai.confusion.beanvalidation.Validator postProcessor = new net.radai.confusion.beanvalidation.Validator();
-        ValidatorDecision<Cats> validatorDecision;
+        BeanValidator postProcessor = new BeanValidator();
+        ValidationResults<Set<ConstraintViolation<Object>>> validationResults;
 
         Cats invalid = new Cats(null, null, new Cat(null, null, null), new Cat(null, null, Collections.singletonList("LETTUCE")));
-        validatorDecision = postProcessor.validate(null, invalid);
-        Assert.assertFalse(validatorDecision.isUpdateConf());
+        validationResults = postProcessor.validate(null, invalid);
+        Assert.assertFalse(validationResults.isValid());
     }
 }

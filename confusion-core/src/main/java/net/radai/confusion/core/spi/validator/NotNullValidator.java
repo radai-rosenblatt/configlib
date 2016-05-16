@@ -20,9 +20,9 @@ package net.radai.confusion.core.spi.validator;
 /**
  * Created by Radai Rosenblatt
  */
-public class NotNullValidator implements Validator {
+public class NotNullValidator implements Validator<Void> {
     @Override
-    public <T> ValidatorDecision<T> validate(T currConf, T discoveredConf) throws IllegalArgumentException {
-        return new ValidatorDecision<>(discoveredConf != null, discoveredConf, false);
+    public ValidationResults<Void> validate(Object currConf, Object discoveredConf) {
+        return new ValidationResults<>(discoveredConf != null, null);
     }
 }

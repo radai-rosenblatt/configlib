@@ -17,38 +17,40 @@
 
 package net.radai.confusion.beanvalidation;
 
-import net.radai.confusion.core.spi.validator.ValidatorDecision;
+import net.radai.confusion.core.spi.validator.ValidationResults;
+import net.radai.confusion.core.spi.validator.Validator;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
+import java.util.Collections;
 import java.util.Set;
 
 /**
  * Created by Radai Rosenblatt
  */
-public class Validator implements net.radai.confusion.core.spi.validator.Validator {
+public class BeanValidator implements Validator<Set<ConstraintViolation<Object>>> {
     private static final javax.validation.Validator validator = Validation.buildDefaultValidatorFactory().getValidator(); //thread safe
 
     private boolean allowNullObject;
 
-    public Validator() {
+    public BeanValidator() {
         this(false);
     }
 
-    public Validator(boolean allowNullObject) {
+    public BeanValidator(boolean allowNullObject) {
         this.allowNullObject = allowNullObject;
     }
 
     @Override
-    public <T> ValidatorDecision<T> validate(T currConf, T discoveredConf) throws IllegalArgumentException {
+    public ValidationResults<Set<ConstraintViolation<Object>>> validate(Object currConf, Object discoveredConf) {
         if (discoveredConf == null) {
             //nulls are not allowed under bean validation spec, so special handling
-            return new ValidatorDecision<>(allowNullObject, null, false);
+            return new ValidationResults<>(allowNullObject, Collections.emptySet());
         }
-        Set<ConstraintViolation<T>> violations = validator.validate(discoveredConf);
+        Set<ConstraintViolation<Object>> violations = validator.validate(discoveredConf);
         if (!violations.isEmpty()) {
-            return new ValidatorDecision<>(false, null, false);
+            return new ValidationResults<>(false, violations);
         }
-        return new ValidatorDecision<>(true, discoveredConf, false);
+        return new ValidationResults<>(true, Collections.emptySet());
     }
 }

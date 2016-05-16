@@ -17,6 +17,8 @@
 
 package net.radai.confusion.core.api;
 
+import java.io.IOException;
+
 /**
  * Created by Radai Rosenblatt
  */
@@ -24,5 +26,6 @@ public interface ConfigurationService<T> {
     void register(ConfigurationListener<T> newListener);
     void unregister(ConfigurationListener<T> existingListener);
     T getConfiguration();
+    void updateConfiguration(T newConfiguration) throws IOException, InvalidConfigurationException;
     Class<T> getConfigurationType();
 }

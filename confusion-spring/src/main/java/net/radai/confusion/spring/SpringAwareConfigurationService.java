@@ -17,10 +17,7 @@
 
 package net.radai.confusion.spring;
 
-import net.radai.confusion.core.api.ConfigurationChangeEvent;
-import net.radai.confusion.core.api.ConfigurationListener;
-import net.radai.confusion.core.api.ConfigurationService;
-import net.radai.confusion.core.api.ServiceLifecycle;
+import net.radai.confusion.core.api.*;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
@@ -29,6 +26,7 @@ import org.springframework.context.ApplicationEventPublisherAware;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import java.io.IOException;
 
 /**
  * Created by Radai Rosenblatt
@@ -57,6 +55,11 @@ public class SpringAwareConfigurationService<T> implements
     @Override
     public T getConfiguration() {
         return delegate.getConfiguration();
+    }
+
+    @Override
+    public void updateConfiguration(T newConfiguration) throws IOException, InvalidConfigurationException {
+        delegate.updateConfiguration(newConfiguration);
     }
 
     @Override
@@ -103,7 +106,12 @@ public class SpringAwareConfigurationService<T> implements
     }
 
     @Override
-    public void configurationChanged(ConfigurationChangeEvent<T> changeEvent) {
-        springPublisher.publishEvent(new SpringConfigurationChangedEvent<>(this, changeEvent));
+    public void configurationChanged(ConfigurationChangeEvent<T> event) {
+        springPublisher.publishEvent(new SpringConfigurationChangedEvent<>(this, event));
+    }
+
+    @Override
+    public void invalidConfigurationRead(InvalidConfigurationEvent<T> event) {
+        springPublisher.publishEvent(new SpringInvalidConfigurationEvent<>(this, event));
     }
 }

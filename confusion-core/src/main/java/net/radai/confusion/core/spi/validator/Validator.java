@@ -20,6 +20,6 @@ package net.radai.confusion.core.spi.validator;
 /**
  * Created by Radai Rosenblatt
  */
-public interface Validator {
-    <T> ValidatorDecision<T> validate(T currConf, T discoveredConf) throws IllegalArgumentException;
+public interface Validator<V> {
+    ValidationResults<V> validate(Object currConf, Object discoveredConf);
 }

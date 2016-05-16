@@ -15,12 +15,29 @@
  * along with Confusion.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package net.radai.confusion.core.api;
+package net.radai.confusion.core.spi.validator;
 
 /**
  * Created by Radai Rosenblatt
  */
-public interface ConfigurationListener<T> {
-    void configurationChanged(ConfigurationChangeEvent<T> event);
-    void invalidConfigurationRead(InvalidConfigurationEvent<T> event);
+public class ValidationResults<V> {
+    private final boolean valid;
+    private final V validatorOutput; //validator-specific
+
+    public ValidationResults(boolean valid) {
+        this(valid, null);
+    }
+
+    public ValidationResults(boolean valid, V validatorOutput) {
+        this.valid = valid;
+        this.validatorOutput = validatorOutput;
+    }
+
+    public boolean isValid() {
+        return valid;
+    }
+
+    public V getValidatorOutput() {
+        return validatorOutput;
+    }
 }

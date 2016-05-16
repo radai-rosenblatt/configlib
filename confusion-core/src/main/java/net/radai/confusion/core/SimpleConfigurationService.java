@@ -18,7 +18,7 @@
 package net.radai.confusion.core;
 
 import net.radai.confusion.core.api.*;
-import net.radai.confusion.core.spi.validator.ValidatorDecision;
+import net.radai.confusion.core.spi.validator.ValidationResults;
 import net.radai.confusion.core.spi.validator.Validator;
 import net.radai.confusion.core.spi.source.Source;
 import net.radai.confusion.core.spi.source.SourceListener;
@@ -40,7 +40,7 @@ public class SimpleConfigurationService<T> implements ConfigurationService<T>, S
 
     //components
     private final Source<T> source;
-    private final Validator postProcessor;
+    private final Validator validator;
     private final Listeners<ConfigurationListener<T>> listeners = new Listeners<>();
 
     //state
@@ -50,14 +50,14 @@ public class SimpleConfigurationService<T> implements ConfigurationService<T>, S
     public SimpleConfigurationService(
             Class<T> confBeanClass,
             Source<T> source,
-            Validator postProcessor
+            Validator validator
     ) {
-        if (confBeanClass == null || source == null || postProcessor == null) {
+        if (confBeanClass == null || source == null || validator == null) {
             throw new IllegalArgumentException("all arguments are mandatory");
         }
         this.confBeanClass = confBeanClass;
         this.source = source;
-        this.postProcessor = postProcessor;
+        this.validator = validator;
         this.source.register(this);
         //we only load the actual conf when we're started
     }
@@ -79,6 +79,19 @@ public class SimpleConfigurationService<T> implements ConfigurationService<T>, S
             throw new IllegalStateException();
         }
         return latest;
+    }
+
+    @Override
+    public void updateConfiguration(T newConfiguration) throws IOException, InvalidConfigurationException {
+        T latest = ref.get();
+        if (!on) {
+            throw new IllegalStateException();
+        }
+        ValidationResults validationResults = validator.validate(latest, newConfiguration);
+        if (!validationResults.isValid()) {
+            throw new InvalidConfigurationException(newConfiguration, validationResults);
+        }
+        source.write(newConfiguration);
     }
 
     @Override
@@ -139,21 +152,22 @@ public class SimpleConfigurationService<T> implements ConfigurationService<T>, S
      */
     private synchronized boolean loadConf(T newBean, boolean notifyListeners) throws IOException {
         T oldBean = ref.get();
-        ValidatorDecision<T> validatorDecision = postProcessor.validate(oldBean, newBean);
-        if (!validatorDecision.isUpdateConf()) {
-            return false; //do nothing
+        ValidationResults<?> validationResults = validator.validate(oldBean, newBean);
+        if (validationResults.isValid()) {
+            if (!ref.compareAndSet(oldBean, newBean)) {
+                throw new IllegalStateException(); //should never happen - source is sequential and so is start().
+            }
+            if (notifyListeners) {
+                ConfigurationChangeEvent<T> event = new SimpleConfigurationChangeEvent<>(getConfigurationType(), oldBean, newBean);
+                listeners.forEach(listener -> listener.configurationChanged(event));
+            }
+            return true;
+        } else {
+            if (notifyListeners) {
+                InvalidConfigurationEvent<T> event = new SimpleInvalidConfigurationEvent<>(getConfigurationType(), newBean, validationResults);
+                listeners.forEach(listener -> listener.invalidConfigurationRead(event));
+            }
+            return false;
         }
-        T processedBean = validatorDecision.getConfToUse();
-        if (validatorDecision.isPersistConf()) {
-            source.write(processedBean); //may throw IOException
-        }
-        if (!ref.compareAndSet(oldBean, newBean)) {
-            throw new IllegalStateException(); //should never happen - source is sequential and so is start().
-        }
-        if (notifyListeners) {
-            ConfigurationChangeEvent<T> event = new SimpleConfigurationChangeEvent<>(getConfigurationType(), oldBean, newBean);
-            listeners.forEach(listener -> listener.configurationChanged(event));
-        }
-        return true;
     }
 }
