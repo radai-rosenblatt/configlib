@@ -1,4 +1,4 @@
-# Confusion - An Object-first configuration library for java
+# an Object-first configuration library for java
 ### Briefly
 Suppose your application has configurable bits. suppose also that you would like to express your configuration as an object:
 ```java
@@ -64,6 +64,9 @@ Currently supported Codecs:
 * Ini
 * Jaxb
 * Serializable
+
+Coming soon:
+* Validation support (by way of jsr 303 bean validation)
 
 You could also provide your own implementation of a Store/Codec.
 
